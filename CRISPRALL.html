@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRISPR-All Design Lab</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        :root {
+            --stanford-red: #8C1515;
+            --stanford-light-red: #B83A4B;
+            --background-grey: #F0F0F0;
+            --text-color: #333333;
+            --white-color: #FFFFFF;
+            --border-color: #D1D1D1;
+            --light-grey-bg: #FAFAFA;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #fff;
+            color: var(--stanford-red);
+            margin: 0;
+            padding: 40px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+        }
+
+        .main-container {
+            width: 100%;
+            max-width: 900px;
+            background-color: var(--stanford-red);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            padding: 48px;
+            border-top: 8px solid var(--stanford-light-red);
+        }
+
+        h1, h2 {
+            color: var(--white-color);
+            font-weight: 600;
+        }
+
+        h1 {
+            font-size: 32px;
+            color: var(--white-color);
+        }
+        
+        h2 {
+            font-size: 22px;
+            margin-bottom: 16px;
+            border-bottom: 2px solid rgba(255,255,255,0.3);
+            padding-bottom: 8px;
+        }
+
+        .section { margin-bottom: 32px; }
+        .header { display: flex; align-items: center; margin-bottom: 16px; }
+
+        .logo {
+            background-color: var(--white-color);
+            color: var(--stanford-red);
+            font-size: 24px;
+            font-weight: 700;
+            border-radius: 8px;
+            padding: 10px 16px;
+            margin-right: 16px;
+        }
+
+        .description { font-size: 16px; color: rgba(255,255,255,0.9); margin-bottom: 40px; max-width: 700px; }
+        .radio-group label { margin-right: 24px; font-size: 16px; cursor: pointer; color: var(--white-color); }
+
+        #natural-language-input {
+            width: 100%;
+            padding: 12px 16px;
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.3);
+            background-color: rgba(255,255,255,0.1);
+            color: var(--white-color);
+            font-size: 16px;
+            margin-top: 16px;
+        }
+        #natural-language-input::placeholder {
+            color: rgba(255,255,255,0.7);
+        }
+
+        .perturbation-list { list-style: none; padding: 0; }
+        .perturbation-list li {
+            font-size: 18px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 6px;
+            transition: background-color 0.2s;
+            color: #fff !important;
+        }
+        .perturbation-list li:hover { background-color: rgba(255,255,255,0.1); }
+        .perturbation-list li.active { background-color: var(--white-color); color: var(--stanford-red) !important; }
+        .perturbation-list li::before {
+            content: '▶';
+            margin-right: 12px;
+            font-size: 14px;
+            transition: transform 0.2s;
+            color: #fff;
+        }
+        .perturbation-list li.active::before { transform: rotate(90deg); }
+
+        .module-container {
+            border: 2px dashed rgba(255,255,255,0.3);
+            border-radius: 8px;
+            padding: 16px;
+            min-height: 100px;
+            background-color: rgba(255,255,255,0.1);
+            margin-top: 16px;
+        }
+
+        .gene-module {
+            background-color: var(--white-color);
+            color: var(--stanford-red);
+            padding: 10px 16px;
+            border-radius: 6px;
+            cursor: grab;
+            font-weight: 500;
+            display: inline-block;
+            text-align: center;
+            user-select: none;
+            margin: 4px;
+        }
+        .gene-module:active { cursor: grabbing; }
+
+        #construct-builder {
+            border: 2px dashed rgba(255,255,255,0.3);
+            border-radius: 8px;
+            padding: 16px;
+            width: 100%;
+            min-height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            background-color: rgba(255,255,255,0.1);
+        }
+        .linker { font-weight: bold; color: var(--white-color); }
+        .placeholder { color: rgba(255,255,255,0.7); text-align: center; width: 100%; }
+
+        .construct-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        #randomize-btn {
+            background-color: var(--white-color);
+            color: var(--stanford-red);
+            border: none;
+            border-radius: 8px;
+            padding: 10px 18px;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        #randomize-btn:hover { background-color: rgba(255,255,255,0.9); }
+
+        .hidden { display: none; }
+        
+        /* Reasoning Animation */
+        .reasoning-container { text-align: center; color: rgba(255,255,255,0.8); font-style: italic; }
+        .dots { display: inline-block; }
+        .dots span {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            background-color: rgba(255,255,255,0.8);
+            border-radius: 50%;
+            margin: 0 3px;
+            animation: dot-pulse 1.4s infinite ease-in-out both;
+        }
+        .dots span:nth-child(1) { animation-delay: -0.32s; }
+        .dots span:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes dot-pulse {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1.0); }
+        }
+
+        input, select, textarea {
+            color: #fff !important;
+        }
+        input::placeholder, textarea::placeholder {
+            color: #fff !important;
+            opacity: 0.7;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="main-container">
+        <div class="header">
+            <div class="logo">S</div>
+            <h1>CRISPR-ALL Design Lab</h1>
+        </div>
+        <p class="description">
+            A tool to design modular, combinatorial genetic perturbations in primary human T cells!!!!!! (Courtesy of the lab of Dr. Theodore Roth)
+        </p>
+
+        <div class="section">
+            <h2>Design Mode</h2>
+            <div class="radio-group">
+                <input type="radio" id="natural-language-mode" name="design-mode" value="natural">
+                <label for="natural-language-mode">Natural Language</label>
+                <input type="radio" id="selection-tool-mode" name="design-mode" value="selection" checked>
+                <label for="selection-tool-mode">Selection Tool</label>
+            </div>
+            <div id="natural-language-container" class="hidden">
+                <input type="text" id="natural-language-input" placeholder="e.g., 'Resist exhaustion and boost cytotoxicity' (Press Enter)">
+            </div>
+        </div>
+
+        <div id="selection-tool-container" class="section">
+            <h2>Select Modules</h2>
+            <div id="gene-search-wrapper" style="margin-bottom: 16px;">
+                <input type="text" id="gene-search-input" placeholder="Search genes..." style="width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.3); background-color: rgba(255,255,255,0.1); color: white; font-size: 15px;">
+            </div>
+            <div id="module-selector-wrapper">
+                <ul class="perturbation-list">
+                    <li data-target="knock-in-modules">Knock-ins (Overexpression)</li>
+                    <li data-target="knock-out-modules">Knock-outs (Gene Disruption)</li>
+                    <li data-target="knock-down-modules">Knock-downs (CRISPRi)</li>
+                    <li data-target="knock-up-modules">Knock-ups (CRISPRa)</li>
+                </ul>
+                <div id="knock-in-modules" class="module-container hidden">
+                    <div class="gene-module" draggable="true" data-gene="BATF">BATF</div>
+                    <div class="gene-module" draggable="true" data-gene="IRF4">IRF4</div>
+                    <div class="gene-module" draggable="true" data-gene="c-Jun">c-Jun</div>
+                    <div class="gene-module" draggable="true" data-gene="IL-21">IL-21</div>
+                    <div class="gene-module" draggable="true" data-gene="dnPD-1">dnPD-1</div>
+                    <div class="gene-module" draggable="true" data-gene="BCL6">BCL6</div>
+                </div>
+                <div id="knock-out-modules" class="module-container hidden">
+                    <div class="gene-module" draggable="true" data-gene="KO:PDCD1">KO:PDCD1</div>
+                    <div class="gene-module" draggable="true" data-gene="KO:CTLA4">KO:CTLA4</div>
+                    <div class="gene-module" draggable="true" data-gene="KO:LAG3">KO:LAG3</div>
+                    <div class="gene-module" draggable="true" data-gene="KO:DGK">KO:DGK</div>
+                    <div class="gene-module" draggable="true" data-gene="KO:TET2">KO:TET2</div>
+                </div>
+                <div id="knock-down-modules" class="module-container hidden">
+                    <div class="gene-module" draggable="true" data-gene="KD:SOCS1">KD:SOCS1</div>
+                    <div class="gene-module" draggable="true" data-gene="KD:CBLB">KD:CBLB</div>
+                </div>
+                <div id="knock-up-modules" class="module-container hidden">
+                    <div class="gene-module" draggable="true" data-gene="KU:IL2RA">KU:IL2RA</div>
+                    <div class="gene-module" draggable="true" data-gene="KU:TBX21">KU:TBX21</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="construct-header" style="display: flex; justify-content: space-between; align-items: center;">
+                <h2>Construct Layout</h2>
+                <div style="display: flex; gap: 10px;">
+                    <button id="randomize-btn">Randomize Construct</button>
+                    <button id="reset-btn" style="background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.3); border-radius: 8px; padding: 10px 18px; font-size: 15px; cursor: pointer;">Reset</button>
+                </div>
+            </div>
+            <div id="construct-builder">
+                <div class="placeholder">Select a module type above, then drag genes here</div>
+            </div>
+            <div style="margin-top: 24px;">
+                <label for="cassette-string" style="font-weight: 500; color: white;">Cassette String:</label>
+                <textarea id="cassette-string" readonly style="width: 100%; min-height: 40px; margin-top: 6px; font-family: monospace; font-size: 15px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.3); background-color: rgba(255,255,255,0.1); color: white;"></textarea>
+            </div>
+            <div id="cassette-details" style="margin-top: 32px;">
+                <h3 style="font-size: 18px; font-weight: 600; color: white;">Cassette Details</h3>
+                <div style="margin-bottom: 10px;">
+                    <label for="promoter-select" style="color: white;">Promoter:</label>
+                    <select id="promoter-select" style="margin-left: 10px; padding: 4px 8px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.3); background-color: rgba(255,255,255,0.1); color: white;">
+                        <option value="EF1a">EF1a</option>
+                        <option value="PGK">PGK</option>
+                        <option value="SFFV">SFFV</option>
+                        <option value="CMV">CMV</option>
+                    </select>
+                </div>
+                <div style="margin-bottom: 10px;">
+                    <label for="left-homology" style="color: white;">Left Homology Arm:</label>
+                    <input id="left-homology" type="text" placeholder="e.g. TRAC upstream" style="width: 60%; margin-left: 10px; padding: 4px 8px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.3); background-color: rgba(255,255,255,0.1); color: white;">
+                </div>
+                <div style="margin-bottom: 10px;">
+                    <label for="right-homology" style="color: white;">Right Homology Arm:</label>
+                    <input id="right-homology" type="text" placeholder="e.g. TRAC downstream" style="width: 60%; margin-left: 10px; padding: 4px 8px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.3); background-color: rgba(255,255,255,0.1); color: white;">
+                </div>
+                <div style="margin-bottom: 10px;">
+                    <label for="barcode" style="color: white;">Barcode:</label>
+                    <input id="barcode" type="text" placeholder="Unique 10-20bp" style="width: 40%; margin-left: 10px; padding: 4px 8px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.3); background-color: rgba(255,255,255,0.1); color: white;">
+                </div>
+                <div style="margin-bottom: 10px;">
+                    <label for="polyA-select" style="color: white;">PolyA Signal:</label>
+                    <select id="polyA-select" style="margin-left: 10px; padding: 4px 8px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.3); background-color: rgba(255,255,255,0.1); color: white;">
+                        <option value="SV40">SV40</option>
+                        <option value="bGH">bGH</option>
+                        <option value="NOS">NOS</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // --- DOM ELEMENTS ---
+    const modeToggles = document.querySelectorAll('input[name="design-mode"]');
+    const naturalLanguageInput = document.getElementById('natural-language-input');
+    const naturalLanguageContainer = document.getElementById('natural-language-container');
+    const selectionToolContainer = document.getElementById('selection-tool-container');
+    const moduleToggles = document.querySelectorAll('.perturbation-list li');
+    const moduleContainers = document.querySelectorAll('.module-container');
+    const constructBuilder = document.getElementById('construct-builder');
+    const randomizeBtn = document.getElementById('randomize-btn');
+    const moduleSelectorWrapper = document.getElementById('module-selector-wrapper');
+    const geneSearchInput = document.getElementById('gene-search-input');
+    const resetBtn = document.getElementById('reset-btn');
+    const cassetteString = document.getElementById('cassette-string');
+    const peptideOptions = ['P2A', 'T2A', 'E2A', 'F2A'];
+    
+    // --- VARIABLES ---
+    let cassetteGenes = [];
+    let cassettePeptides = [];
+    let peptideSelectorIndex = null;
+    let reasoningTimeout = null;
+    let draggedItem = null;
+    
+    // All available genes from the modules
+    const allGenes = [
+        'BATF', 'IRF4', 'c-Jun', 'IL-21', 'dnPD-1', 'BCL6',
+        'KO:PDCD1', 'KO:CTLA4', 'KO:LAG3', 'KO:DGK', 'KO:TET2',
+        'KD:SOCS1', 'KD:CBLB',
+        'KU:IL2RA', 'KU:TBX21'
+    ];
+
+    // --- FUNCTIONS ---
+    const updateDesignMode = () => {
+        const selectedMode = document.querySelector('input[name="design-mode"]:checked').value;
+        naturalLanguageContainer.classList.toggle('hidden', selectedMode !== 'natural');
+        selectionToolContainer.classList.toggle('hidden', selectedMode === 'natural');
+    };
+
+    const addGeneToCassette = (geneName) => {
+        cassetteGenes.push(geneName);
+        // Ensure peptides array is correct length
+        while (cassettePeptides.length < cassetteGenes.length - 1) cassettePeptides.push('P2A');
+        renderConstructBuilder();
+    };
+
+    function renderConstructBuilder() {
+        constructBuilder.innerHTML = '';
+        if (cassetteGenes.length === 0) {
+            constructBuilder.innerHTML = '<div class="placeholder">Select a module type above, then drag genes here</div>';
+            updateCassetteString();
+            return;
+        }
+        cassetteGenes.forEach((gene, idx) => {
+            if (idx > 0) {
+                // Peptide selector between genes
+                const peptideDiv = document.createElement('div');
+                peptideDiv.style.display = 'inline-block';
+                peptideDiv.style.margin = '0 6px';
+                if (peptideSelectorIndex === idx - 1) {
+                    const select = document.createElement('select');
+                    peptideOptions.forEach(opt => {
+                        const option = document.createElement('option');
+                        option.value = opt;
+                        option.textContent = opt;
+                        if (cassettePeptides[idx - 1] === opt) option.selected = true;
+                        select.appendChild(option);
+                    });
+                    select.addEventListener('change', (e) => {
+                        cassettePeptides[idx - 1] = e.target.value;
+                        peptideSelectorIndex = null;
+                        renderConstructBuilder();
+                    });
+                    select.addEventListener('blur', () => {
+                        peptideSelectorIndex = null;
+                        renderConstructBuilder();
+                    });
+                    peptideDiv.appendChild(select);
+                } else {
+                    const span = document.createElement('span');
+                    span.className = 'linker';
+                    span.textContent = cassettePeptides[idx - 1] || 'P2A';
+                    span.style.cursor = 'pointer';
+                    span.addEventListener('click', () => {
+                        peptideSelectorIndex = idx - 1;
+                        renderConstructBuilder();
+                    });
+                    peptideDiv.appendChild(span);
+                }
+                constructBuilder.appendChild(peptideDiv);
+            }
+            const geneElement = document.createElement('div');
+            geneElement.className = 'gene-module';
+            geneElement.textContent = gene;
+            geneElement.style.position = 'relative';
+            // Remove gene button
+            const removeBtn = document.createElement('button');
+            removeBtn.textContent = '×';
+            removeBtn.style.position = 'absolute';
+            removeBtn.style.right = '-10px';
+            removeBtn.style.top = '-10px';
+            removeBtn.style.background = '#fff';
+            removeBtn.style.border = '1px solid #ccc';
+            removeBtn.style.borderRadius = '50%';
+            removeBtn.style.width = '20px';
+            removeBtn.style.height = '20px';
+            removeBtn.style.cursor = 'pointer';
+            removeBtn.addEventListener('click', () => {
+                cassetteGenes.splice(idx, 1);
+                cassettePeptides.splice(Math.max(0, idx - 1), 1);
+                renderConstructBuilder();
+            });
+            geneElement.appendChild(removeBtn);
+            constructBuilder.appendChild(geneElement);
+        });
+        updateCassetteString();
+    }
+
+    function updateCassetteString() {
+        let str = '';
+        cassetteGenes.forEach((g, i) => {
+            str += g;
+            if (i < cassettePeptides.length) {
+                str += ' – ' + (cassettePeptides[i] || 'P2A') + ' – ';
+            } else if (i < cassetteGenes.length - 1) {
+                str += ' – P2A – ';
+            }
+        });
+        cassetteString.value = str;
+    }
+
+    const generateRandomConstruct = () => {
+        cassetteGenes = [];
+        cassettePeptides = [];
+        const shuffled = [...allGenes].sort(() => 0.5 - Math.random());
+        const sliceEnd = Math.floor(Math.random() * 2) + 2; // 2 or 3 genes
+        const selectedGenes = shuffled.slice(0, sliceEnd);
+        selectedGenes.forEach(gene => cassetteGenes.push(gene));
+        while (cassettePeptides.length < cassetteGenes.length - 1) cassettePeptides.push('P2A');
+        renderConstructBuilder();
+    };
+
+    const showReasoningAnimation = () => {
+        constructBuilder.innerHTML = `
+            <div class="reasoning-container">
+                Reasoning...
+                <div class="dots">
+                    <span></span><span></span><span></span>
+                </div>
+            </div>`;
+    };
+
+    // --- EVENT LISTENERS ---
+    modeToggles.forEach(toggle => toggle.addEventListener('change', updateDesignMode));
+
+    moduleToggles.forEach(toggle => {
+        toggle.addEventListener('click', () => {
+            const targetId = toggle.dataset.target;
+            const targetContainer = document.getElementById(targetId);
+            if (toggle.classList.contains('active')) {
+                toggle.classList.remove('active');
+                targetContainer.classList.add('hidden');
+            } else {
+                moduleToggles.forEach(t => t.classList.remove('active'));
+                moduleContainers.forEach(c => c.classList.add('hidden'));
+                toggle.classList.add('active');
+                targetContainer.classList.remove('hidden');
+            }
+        });
+    });
+
+    randomizeBtn.addEventListener('click', generateRandomConstruct);
+
+    naturalLanguageInput.addEventListener('keyup', (event) => {
+        if (event.key === 'Enter' && naturalLanguageInput.value.trim() !== '') {
+            // Clear any existing timeout
+            if (reasoningTimeout) {
+                clearTimeout(reasoningTimeout);
+            }
+            
+            showReasoningAnimation();
+            
+            // Set timeout to generate random construct after 2 seconds
+            reasoningTimeout = setTimeout(() => {
+                generateRandomConstruct();
+                reasoningTimeout = null;
+            }, 2000);
+        }
+    });
+
+    moduleSelectorWrapper.addEventListener('dragstart', e => {
+        if (e.target.classList.contains('gene-module')) {
+            draggedItem = e.target;
+            setTimeout(() => e.target.style.opacity = '0.5', 0);
+        }
+    });
+    moduleSelectorWrapper.addEventListener('dragend', e => {
+        if (e.target.classList.contains('gene-module')) {
+            setTimeout(() => e.target.style.opacity = '1', 0);
+            draggedItem = null;
+        }
+    });
+
+    constructBuilder.addEventListener('dragover', e => e.preventDefault());
+    constructBuilder.addEventListener('dragenter', e => e.preventDefault());
+    constructBuilder.addEventListener('drop', e => {
+        e.preventDefault();
+        if (draggedItem) {
+            addGeneToCassette(draggedItem.dataset.gene);
+        }
+    });
+
+    // --- Gene Search/Filter ---
+    geneSearchInput.addEventListener('input', () => {
+        const query = geneSearchInput.value.trim().toLowerCase();
+        document.querySelectorAll('.gene-module').forEach(el => {
+            const gene = el.dataset.gene.toLowerCase();
+            el.style.display = gene.includes(query) ? '' : 'none';
+        });
+    });
+
+    // --- Reset ---
+    resetBtn.addEventListener('click', () => {
+        cassetteGenes = [];
+        cassettePeptides = [];
+        peptideSelectorIndex = null;
+        // Clear any running timeout
+        if (reasoningTimeout) {
+            clearTimeout(reasoningTimeout);
+            reasoningTimeout = null;
+        }
+        renderConstructBuilder();
+        // Reset cassette details
+        document.getElementById('promoter-select').value = 'EF1a';
+        document.getElementById('left-homology').value = '';
+        document.getElementById('right-homology').value = '';
+        document.getElementById('barcode').value = '';
+        document.getElementById('polyA-select').value = 'SV40';
+    });
+
+    // --- INITIAL STATE ---
+    updateDesignMode();
+    renderConstructBuilder(); // Initial render of the cassette string
+});
+</script>
+
+</body>
+</html>
