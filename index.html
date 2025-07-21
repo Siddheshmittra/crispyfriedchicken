@@ -638,14 +638,14 @@ document.addEventListener('DOMContentLoaded',() => {
   const nameCache = new Map();
 
   /**
-   * Returns [{symbol, name}] for a user query such as "bat".
+   * Returns [{symbol, name}] for a user query such as "bat" or an alias like "p53".
    */
   async function hgncSuggest(query) {
     if (query.length < 2) return [];
 
-    // 1. quick prefix search
+    // Use the generic /search/ endpoint to match symbols, names, and aliases
     const searchURL =
-      `https://rest.genenames.org/search/symbol/${encodeURIComponent(query)}*+AND+status:Approved`;
+      `https://rest.genenames.org/search/${encodeURIComponent(query)}`;
     const sRes = await fetch(searchURL, JSON_HDR).then(r => r.json());
     const hits = (sRes.response?.docs || []).slice(0, 10);          // top 10 only
 
