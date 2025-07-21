@@ -155,6 +155,7 @@ input::placeholder,textarea::placeholder {color:#fff;opacity:.7;}
 }
 .inline-mode-toggle {margin:12px 0 8px;display:flex;gap:20px;color:#fff;font-size:14px;}
 .inline-mode-toggle label {cursor:pointer;}
+.autocomplete-suggestions{ z-index:10000 !important; }
 </style>
 </head>
 <body>
@@ -620,23 +621,22 @@ document.addEventListener('DOMContentLoaded',() => {
 
   // Search
   // NCBI autocomplete for gene search
-  console.log('Initializing autocomplete', window.jQuery, $.fn.autocomplete);
   $('#gene-search-input').autocomplete({
     serviceUrl: 'https://clinicaltables.nlm.nih.gov/api/ncbi_genes/v3/search',
-    paramName: 'terms',
-    minChars: 2,
-    transformResult: function(response) {
-      var data = JSON.parse(response);
+    paramName : 'terms',
+    dataType  : 'json',          // let the plugin handle JSON
+    minChars  : 2,
+    transformResult: function (data) {
       return {
-        suggestions: data[1].map(function(item, idx) {
-          return { value: item, data: data[2][idx] };
+        suggestions: $.map(data[1], function (symbol, idx) {
+          return { value: symbol, data: data[2][idx] };
         })
       };
     },
-    onSelect: function (suggestion) {
-      $('#gene-search-input').val(suggestion.value);
-      lastNcbiGene = suggestion.value;
-      showNcbiAddPanel(suggestion.value);
+    onSelect: function (s) {
+      $('#gene-search-input').val(s.value);
+      lastNcbiGene = s.value;
+      showNcbiAddPanel(s.value);
       filterGeneModules();
     }
   });
