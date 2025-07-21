@@ -630,13 +630,34 @@ document.addEventListener('DOMContentLoaded',() => {
     }
   }
 
+  // Add a cache for Ensembl sequences
+  const ensemblSequences = {};
+
+  // Update addGene to store the Ensembl sequence in the cache, no alert
+  const _origAddGene = addGene;
+  addGene = async function(gene, type) {
+    _origAddGene.apply(this, arguments);
+    let symbol = gene.replace(/^KO:/, '').replace(/^KD:/, '').replace(/^KU:/, '');
+    if (type === 'overexpression') {
+      if (!ensemblSequences[symbol]) {
+        const seq = await fetchEnsemblSequence(symbol);
+        if (seq) {
+          ensemblSequences[symbol] = seq;
+        }
+      }
+    }
+  };
+
+  // Update buildSequence to use Ensembl sequence if available
   function buildSequence(){
     let seq=[];
     if(leftHomology.value) seq.push(leftHomology.value.toUpperCase());
     seq.push(promoterSelect.value.toUpperCase());
     cassetteGenes.forEach((g,i)=>{
       seq.push(`[${g}]`);
-      seq.push(geneSequences[g]||'NNN');
+      let symbol = g.replace(/^KO:/, '').replace(/^KD:/, '').replace(/^KU:/, '');
+      let geneSeq = ensemblSequences[symbol] || geneSequences[g] || 'NNN';
+      seq.push(geneSeq);
       if(i<connectors.length && connectors[i]){
         seq.push(`[${connectors[i]}]`);
         seq.push(linkerSequence(connectors[i]));
@@ -1211,21 +1232,21 @@ document.addEventListener('DOMContentLoaded',() => {
   }
 
   // When a gene is added to the cassette, fetch and display its sequence (for now, alert it)
-  const _origAddGene = addGene;
-  addGene = async function(gene, type) {
-    _origAddGene.apply(this, arguments);
-    // Only fetch for overexpression or KI (not KO/KD)
-    let symbol = gene.replace(/^KO:/, '').replace(/^KD:/, '').replace(/^KU:/, '');
-    if (type === 'overexpression') {
-      const seq = await fetchEnsemblSequence(symbol);
-      if (seq) {
-        alert(`Nucleotide sequence for ${symbol} (Ensembl):\n${seq.substring(0, 100)}...`);
-        // You can display this in the UI instead of alerting, or store it for later use
-      } else {
-        alert(`No sequence found for ${symbol} in Ensembl.`);
-      }
-    }
-  };
+  // const _origAddGene = addGene; // This line is removed as per the new_code, as addGene is now async
+  // addGene = async function(gene, type) { // This block is removed as per the new_code, as addGene is now async
+  //   _origAddGene.apply(this, arguments);
+  //   // Only fetch for overexpression or KI (not KO/KD)
+  //   let symbol = gene.replace(/^KO:/, '').replace(/^KD:/, '').replace(/^KU:/, '');
+  //   if (type === 'overexpression') {
+  //     const seq = await fetchEnsemblSequence(symbol);
+  //     if (seq) {
+  //       alert(`Nucleotide sequence for ${symbol} (Ensembl):\n${seq.substring(0, 100)}...`);
+  //       // You can display this in the UI instead of alerting, or store it for later use
+  //     } else {
+  //       alert(`No sequence found for ${symbol} in Ensembl.`);
+  //     }
+  //   }
+  // };
 
   // Patch removeGene to enforce rules after any change
   const _origRemoveGene = removeGene;
