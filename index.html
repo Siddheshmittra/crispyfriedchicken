@@ -154,7 +154,9 @@ input::placeholder,textarea::placeholder {color:#fff;opacity:.7;}
 }
 .inline-mode-toggle {margin:12px 0 8px;display:flex;gap:20px;color:#fff;font-size:14px;}
 .inline-mode-toggle label {cursor:pointer;}
-.autocomplete-suggestions{ z-index:10000 !important; }
+.autocomplete-suggestions{ z-index:10000 !important; position:absolute; background:#fff; color:#8C1515; border:1px solid #ccc; border-radius:6px; width:100%; max-height:220px; overflow-y:auto; }
+.autocomplete-suggestion{ padding:8px 12px; cursor:pointer; }
+.autocomplete-suggestion:hover{ background:#f5eaea; }
 </style>
 </head>
 <body>
@@ -619,27 +621,76 @@ document.addEventListener('DOMContentLoaded',() => {
   });
 
   // Search
-  // Replace the autocomplete initialization with the official LHC Autocomplete usage
-  // NCBI autocomplete for gene search
-  new Def.Autocompleter.Search('gene-search-input', 
-    'https://clinicaltables.nlm.nih.gov/api/ncbi_genes/v3/search', {
-      tableFormat: true,
-      valueCols: [0],
-      colHeaders: ['Symbol', 'Name'],
-      maxSelect: 1,
-      minChars: 2
+  // Remove LHC/Def.Autocompleter code and implement custom autocomplete
+  // Custom autocomplete for gene search input using Fetch API
+  let searchTimeout;
+  let autocompleteDropdown = null;
+
+  function closeAutocompleteDropdown() {
+    if (autocompleteDropdown) {
+      autocompleteDropdown.remove();
+      autocompleteDropdown = null;
+    }
+  }
+
+  geneSearchInput.addEventListener('input', function() {
+    const query = this.value.trim();
+    closeAutocompleteDropdown();
+    clearTimeout(searchTimeout);
+
+    if (query.length >= 2) {
+      searchTimeout = setTimeout(() => {
+        fetch(`https://clinicaltables.nlm.nih.gov/api/ncbi_genes/v3/search?terms=${encodeURIComponent(query)}&maxList=10`)
+          .then(response => response.json())
+          .then(data => {
+            if (data[1] && data[1].length > 0) {
+              autocompleteDropdown = document.createElement('div');
+              autocompleteDropdown.className = 'autocomplete-suggestions';
+              autocompleteDropdown.style.position = 'absolute';
+              autocompleteDropdown.style.background = '#fff';
+              autocompleteDropdown.style.color = '#8C1515';
+              autocompleteDropdown.style.border = '1px solid #ccc';
+              autocompleteDropdown.style.borderRadius = '6px';
+              autocompleteDropdown.style.zIndex = '10000';
+              autocompleteDropdown.style.width = geneSearchInput.offsetWidth + 'px';
+              autocompleteDropdown.style.maxHeight = '220px';
+              autocompleteDropdown.style.overflowY = 'auto';
+              autocompleteDropdown.style.left = geneSearchInput.getBoundingClientRect().left + window.scrollX + 'px';
+              autocompleteDropdown.style.top = geneSearchInput.getBoundingClientRect().bottom + window.scrollY + 'px';
+
+              data[1].forEach((symbol, idx) => {
+                const item = document.createElement('div');
+                item.className = 'autocomplete-suggestion';
+                item.textContent = symbol + (data[0][idx] ? ` — ${data[0][idx]}` : '');
+                item.style.padding = '8px 12px';
+                item.style.cursor = 'pointer';
+                item.addEventListener('mousedown', function(e) {
+                  e.preventDefault();
+                  geneSearchInput.value = symbol;
+                  lastNcbiGene = symbol;
+                  closeAutocompleteDropdown();
+                  showNcbiAddPanel(symbol);
+                  filterGeneModules();
+                });
+                autocompleteDropdown.appendChild(item);
+              });
+              document.body.appendChild(autocompleteDropdown);
+            }
+          })
+          .catch(console.error);
+      }, 300);
+    }
+    filterGeneModules();
   });
 
-  // Listen for selection events
-  Def.Autocompleter.Event.observeListSelections('gene-search-input', function() {
-    setTimeout(() => {
-      const selectedValue = document.getElementById('gene-search-input').value;
-      if (selectedValue && selectedValue !== lastNcbiGene) {
-        lastNcbiGene = selectedValue;
-        showNcbiAddPanel(selectedValue);
-        filterGeneModules();
-      }
-    }, 100);
+  geneSearchInput.addEventListener('blur', function() {
+    setTimeout(closeAutocompleteDropdown, 150);
+  });
+
+  geneSearchInput.addEventListener('focus', function() {
+    if (this.value.length >= 2) {
+      this.dispatchEvent(new Event('input'));
+    }
   });
 
   function showNcbiAddPanel(geneSymbol) {
