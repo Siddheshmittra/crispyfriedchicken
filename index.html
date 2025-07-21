@@ -1209,6 +1209,13 @@ document.addEventListener('DOMContentLoaded',() => {
         removeGene(fromIdx);
       }
     });
+    trashCan.addEventListener('click', function(e) {
+      cassetteGenes.length = 0;
+      cassetteTypes.length = 0;
+      connectors.length = 0;
+      renderConstruct();
+      updateCassetteString();
+    });
   }
 
   function reorderCassette(fromIdx, toIdx) {
