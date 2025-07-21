@@ -633,51 +633,73 @@ document.addEventListener('DOMContentLoaded',() => {
     }
   }
 
+  // HGNC gene name autocomplete helper
+  const JSON_HDR = { headers: { "Accept": "application/json" } };
+  const nameCache = new Map();
+
+  /**
+   * Returns [{symbol, name}] for a user query such as "bat".
+   */
+  async function hgncSuggest(query) {
+    if (query.length < 2) return [];
+
+    // 1. quick prefix search
+    const searchURL =
+      `https://rest.genenames.org/search/symbol/${encodeURIComponent(query)}*+AND+status:Approved`;
+    const sRes = await fetch(searchURL, JSON_HDR).then(r => r.json());
+    const hits = (sRes.response?.docs || []).slice(0, 10);          // top 10 only
+
+    // 2. hydrate each hit with the full name (parallel, but rate-safe)
+    const promises = hits.map(async ({ hgnc_id, symbol }) => {
+      if (nameCache.has(symbol)) return { symbol, name: nameCache.get(symbol) };
+
+      const fURL = `https://rest.genenames.org/fetch/symbol/${encodeURIComponent(symbol)}`;
+      const fRes = await fetch(fURL, JSON_HDR).then(r => r.json());
+      const name = fRes.response?.docs?.[0]?.name || "(name unavailable)";
+      nameCache.set(symbol, name);
+      return { symbol, name };
+    });
+
+    return Promise.all(promises);
+  }
+
   geneSearchInput.addEventListener('input', function() {
     const query = this.value.trim();
     closeAutocompleteDropdown();
     clearTimeout(searchTimeout);
 
     if (query.length >= 2) {
-      searchTimeout = setTimeout(() => {
-        fetch(`https://clinicaltables.nlm.nih.gov/api/ncbi_genes/v3/search?terms=${encodeURIComponent(query)}&maxList=10`)
-          .then(response => response.json())
-          .then(data => {
-            if (data[1] && data[1].length > 0) {
-              autocompleteDropdown = document.createElement('div');
-              autocompleteDropdown.className = 'autocomplete-suggestions';
-              autocompleteDropdown.style.position = 'absolute';
-              autocompleteDropdown.style.background = '#fff';
-              autocompleteDropdown.style.color = '#8C1515';
-              autocompleteDropdown.style.border = '1px solid #ccc';
-              autocompleteDropdown.style.borderRadius = '6px';
-              autocompleteDropdown.style.zIndex = '10000';
-              autocompleteDropdown.style.width = geneSearchInput.offsetWidth + 'px';
-              autocompleteDropdown.style.maxHeight = '220px';
-              autocompleteDropdown.style.overflowY = 'auto';
-              autocompleteDropdown.style.left = geneSearchInput.getBoundingClientRect().left + window.scrollX + 'px';
-              autocompleteDropdown.style.top = geneSearchInput.getBoundingClientRect().bottom + window.scrollY + 'px';
+      searchTimeout = setTimeout(async () => {
+        const items = await hgncSuggest(query);
+        if (!items.length) return;
 
-              data[1].forEach((symbol, idx) => {
-                const item = document.createElement('div');
-                item.className = 'autocomplete-suggestion';
-                item.textContent = symbol + (data[0][idx] ? ` — ${data[0][idx]}` : '');
-                item.style.padding = '8px 12px';
-                item.style.cursor = 'pointer';
-                item.addEventListener('mousedown', function(e) {
-                  e.preventDefault();
-                  geneSearchInput.value = symbol;
-                  lastNcbiGene = symbol;
-                  closeAutocompleteDropdown();
-                  showNcbiAddPanel(symbol);
-                  filterGeneModules();
-                });
-                autocompleteDropdown.appendChild(item);
-              });
-              document.body.appendChild(autocompleteDropdown);
-            }
-          })
-          .catch(console.error);
+        autocompleteDropdown = document.createElement('div');
+        autocompleteDropdown.className = 'autocomplete-suggestions';
+        autocompleteDropdown.style.position = 'absolute';
+        autocompleteDropdown.style.background = '#fff';
+        autocompleteDropdown.style.color = '#8C1515';
+        autocompleteDropdown.style.border = '1px solid #ccc';
+        autocompleteDropdown.style.borderRadius = '6px';
+        autocompleteDropdown.style.zIndex = '10000';
+        autocompleteDropdown.style.width = geneSearchInput.offsetWidth + 'px';
+        autocompleteDropdown.style.maxHeight = '220px';
+        autocompleteDropdown.style.overflowY = 'auto';
+        autocompleteDropdown.style.left = geneSearchInput.getBoundingClientRect().left + window.scrollX + 'px';
+        autocompleteDropdown.style.top = geneSearchInput.getBoundingClientRect().bottom + window.scrollY + 'px';
+
+        items.forEach(({ symbol, name }) => {
+          const row = document.createElement('div');
+          row.className = 'autocomplete-suggestion';
+          row.textContent = `${symbol} — ${name}`;
+          row.addEventListener('mousedown', () => {
+            geneSearchInput.value = symbol;
+            closeAutocompleteDropdown();
+            showNcbiAddPanel(symbol);
+            filterGeneModules();
+          });
+          autocompleteDropdown.appendChild(row);
+        });
+        document.body.appendChild(autocompleteDropdown);
       }, 300);
     }
     filterGeneModules();
