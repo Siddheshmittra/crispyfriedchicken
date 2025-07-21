@@ -301,6 +301,11 @@ input::placeholder,textarea::placeholder {color:#fff;opacity:.7;}
     <div id="construct-builder" style="margin-top:16px;">
       <div class="placeholder">Select a module category, then drag genes here (max 5)</div>
     </div>
+    <div id="cassette-trash-can" style="margin-top:12px;display:flex;justify-content:center;align-items:center;">
+      <div id="trash-can" style="width:48px;height:48px;border-radius:12px;background:#fff3f3;border:2px dashed #8C1515;display:flex;align-items:center;justify-content:center;font-size:28px;color:#8C1515;transition:background 0.2s, border 0.2s;cursor:pointer;">
+        🗑️
+      </div>
+    </div>
     <div style="margin-top:24px;">
       <label for="cassette-string" style="font-weight:500;color:white;">Cassette String:</label>
       <textarea id="cassette-string" readonly></textarea>
@@ -528,10 +533,6 @@ document.addEventListener('DOMContentLoaded',() => {
       }
       const div = document.createElement('div');
       div.className = 'gene-module'; div.textContent = g; div.style.cursor = 'default';
-      const rm = document.createElement('button');
-      rm.className = 'gene-remove-btn'; rm.textContent = '×';
-      rm.addEventListener('click', () => removeGene(i));
-      div.appendChild(rm);
       constructBuilder.appendChild(div);
       // Cleaving protein connectors (except after last gene)
       if (i < cassetteGenes.length - 1) {
@@ -1111,22 +1112,54 @@ document.addEventListener('DOMContentLoaded',() => {
         child.draggable = true;
         child._ondragstart = function(e) {
           e.dataTransfer.setData('cassette-index', idx);
+          setTimeout(() => { child.style.opacity = '0.5'; }, 0);
         };
         child.addEventListener('dragstart', child._ondragstart);
         child._ondragover = function(e) {
           e.preventDefault();
           child.style.background = '#f5eaea';
+          child.style.transform = 'scale(1.05)';
+          child.style.transition = 'background 0.15s, transform 0.15s';
         };
         child.addEventListener('dragover', child._ondragover);
         child._ondrop = function(e) {
           e.preventDefault();
           child.style.background = '';
+          child.style.transform = '';
+          child.style.opacity = '';
           const fromIdx = parseInt(e.dataTransfer.getData('cassette-index'));
           const toIdx = idx;
           reorderCassette(fromIdx, toIdx);
         };
         child.addEventListener('drop', child._ondrop);
-        child.addEventListener('dragleave', function() { child.style.background = ''; });
+        child.addEventListener('dragleave', function() {
+          child.style.background = '';
+          child.style.transform = '';
+        });
+        child.addEventListener('dragend', function() {
+          child.style.opacity = '';
+          child.style.background = '';
+          child.style.transform = '';
+        });
+      }
+    });
+    const trashCan = document.getElementById('trash-can');
+    trashCan.addEventListener('dragover', function(e) {
+      e.preventDefault();
+      trashCan.style.background = '#ffd6d6';
+      trashCan.style.border = '2px solid #d32f2f';
+    });
+    trashCan.addEventListener('dragleave', function() {
+      trashCan.style.background = '#fff3f3';
+      trashCan.style.border = '2px dashed #8C1515';
+    });
+    trashCan.addEventListener('drop', function(e) {
+      e.preventDefault();
+      trashCan.style.background = '#fff3f3';
+      trashCan.style.border = '2px dashed #8C1515';
+      const fromIdx = parseInt(e.dataTransfer.getData('cassette-index'));
+      if (!isNaN(fromIdx)) {
+        removeGene(fromIdx);
       }
     });
   }
