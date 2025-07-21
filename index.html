@@ -1191,14 +1191,43 @@ document.addEventListener('DOMContentLoaded',() => {
     enableCassetteDragAndDrop();
   };
 
-  // Patch addGene and removeGene to enforce rules after any change
+  // Add Ensembl REST API integration to fetch nucleotide sequence for a gene symbol
+  async function fetchEnsemblSequence(symbol) {
+    try {
+      // 1. Lookup Ensembl gene ID by symbol
+      const lookupRes = await fetch(`https://rest.ensembl.org/lookup/symbol/homo_sapiens/${encodeURIComponent(symbol)}?content-type=application/json`);
+      if (!lookupRes.ok) throw new Error('Gene not found in Ensembl');
+      const lookupData = await lookupRes.json();
+      const ensemblId = lookupData.id;
+      if (!ensemblId) throw new Error('No Ensembl gene ID found');
+      // 2. Get sequence by Ensembl ID
+      const seqRes = await fetch(`https://rest.ensembl.org/sequence/id/${ensemblId}?content-type=application/json`);
+      if (!seqRes.ok) throw new Error('Sequence not found');
+      const seqData = await seqRes.json();
+      return seqData.seq;
+    } catch (err) {
+      return null;
+    }
+  }
+
+  // When a gene is added to the cassette, fetch and display its sequence (for now, alert it)
   const _origAddGene = addGene;
-  addGene = function(gene, type) {
+  addGene = async function(gene, type) {
     _origAddGene.apply(this, arguments);
-    enforceCassetteRules();
-    renderConstruct();
-    updateCassetteString();
+    // Only fetch for overexpression or KI (not KO/KD)
+    let symbol = gene.replace(/^KO:/, '').replace(/^KD:/, '').replace(/^KU:/, '');
+    if (type === 'overexpression') {
+      const seq = await fetchEnsemblSequence(symbol);
+      if (seq) {
+        alert(`Nucleotide sequence for ${symbol} (Ensembl):\n${seq.substring(0, 100)}...`);
+        // You can display this in the UI instead of alerting, or store it for later use
+      } else {
+        alert(`No sequence found for ${symbol} in Ensembl.`);
+      }
+    }
   };
+
+  // Patch removeGene to enforce rules after any change
   const _origRemoveGene = removeGene;
   removeGene = function(index) {
     _origRemoveGene.apply(this, arguments);
