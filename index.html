@@ -1320,6 +1320,108 @@ document.addEventListener('mousedown', function(e) {
   // The logic for adding genes based on type is now handled by the new UI.
 });
 
+  // In the HTML, add a library import section above the default modules
+<div id="custom-library-section" style="margin-bottom:18px;">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+    <button id="import-library-btn" class="button secondary">Import Library</button>
+    <input type="file" id="import-library-file" accept=".csv,.txt" style="display:none;" />
+    <button id="import-library-paste-btn" class="button secondary">Paste Genes</button>
+  </div>
+  <textarea id="import-library-textarea" placeholder="Paste gene symbols, one per line (optionally: symbol,NCBI_ID)" style="width:100%;display:none;margin-bottom:8px;"></textarea>
+  <button id="import-library-confirm-btn" class="button" style="display:none;margin-bottom:8px;">Add to Library</button>
+  <div id="custom-library-list" style="display:flex;flex-wrap:wrap;gap:10px;"></div>
+</div>
+
+  // In the JS, add logic for importing and displaying custom library genes
+let customLibraryGenes = [];
+
+const importLibraryBtn = document.getElementById('import-library-btn');
+const importLibraryFile = document.getElementById('import-library-file');
+const importLibraryPasteBtn = document.getElementById('import-library-paste-btn');
+const importLibraryTextarea = document.getElementById('import-library-textarea');
+const importLibraryConfirmBtn = document.getElementById('import-library-confirm-btn');
+const customLibraryList = document.getElementById('custom-library-list');
+
+importLibraryBtn.addEventListener('click', () => {
+  importLibraryFile.click();
+});
+importLibraryFile.addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async () => {
+    await processLibraryInput(reader.result);
+  };
+  reader.readAsText(file);
+});
+importLibraryPasteBtn.addEventListener('click', () => {
+  importLibraryTextarea.style.display = 'block';
+  importLibraryConfirmBtn.style.display = 'inline-block';
+});
+importLibraryConfirmBtn.addEventListener('click', async () => {
+  await processLibraryInput(importLibraryTextarea.value);
+  importLibraryTextarea.value = '';
+  importLibraryTextarea.style.display = 'none';
+  importLibraryConfirmBtn.style.display = 'none';
+});
+
+async function processLibraryInput(text) {
+  // Parse CSV or plain text
+  const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  for (const line of lines) {
+    let symbol = '', ncbi_id = '';
+    if (line.includes(',')) {
+      [symbol, ncbi_id] = line.split(',').map(s => s.trim());
+    } else {
+      symbol = line;
+    }
+    let resolvedSymbol = symbol;
+    let resolvedNcbiId = ncbi_id;
+    if (!resolvedNcbiId) {
+      // Use NCBI API to resolve symbol to NCBI ID (first result)
+      try {
+        const res = await fetch(`https://clinicaltables.nlm.nih.gov/api/ncbi_genes/v3/search?terms=${encodeURIComponent(symbol)}`);
+        const data = await res.json();
+        if (data[1] && data[1][0]) {
+          resolvedSymbol = data[1][0];
+          resolvedNcbiId = data[2][0];
+        }
+      } catch {}
+    }
+    if (resolvedSymbol && resolvedNcbiId) {
+      customLibraryGenes.push({ symbol: resolvedSymbol, ncbi_id: resolvedNcbiId });
+    } else if (resolvedSymbol) {
+      customLibraryGenes.push({ symbol: resolvedSymbol, ncbi_id: '' });
+    }
+  }
+  renderCustomLibrary();
+}
+
+function renderCustomLibrary() {
+  customLibraryList.innerHTML = '';
+  customLibraryGenes.forEach(({ symbol, ncbi_id }) => {
+    const div = document.createElement('div');
+    div.className = 'gene-module';
+    div.textContent = symbol + (ncbi_id ? ` (NCBI:${ncbi_id})` : '');
+    div.draggable = true;
+    div.dataset.gene = symbol;
+    div.dataset.type = 'overexpression';
+    div.style.background = '#e3f2fd';
+    div.style.color = '#1976d2';
+    div.style.fontWeight = '500';
+    div.style.border = '1px solid #1976d2';
+    div.style.marginBottom = '4px';
+    div.addEventListener('dragstart', e => {
+      e.dataTransfer.setData('gene', symbol);
+      e.dataTransfer.setData('type', 'overexpression');
+    });
+    div.addEventListener('click', () => {
+      addGene(symbol, 'overexpression');
+    });
+    customLibraryList.appendChild(div);
+  });
+}
+
   // Init
   renderConstruct();updateCassetteString();
 });
