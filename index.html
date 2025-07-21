@@ -192,10 +192,15 @@ input::placeholder,textarea::placeholder {color:#fff;opacity:.7;}
   <div id="manual-tool-container">
     <div class="section">
       <h2>2. Select Modules</h2>
-      <div id="gene-search-bar-container" style="position:relative;">
-        <div id="gene-search-bar" style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
-          <input type="text" id="gene-search-input" placeholder="Search or enter gene symbol..." style="flex:1;padding:8px 12px;border-radius:6px;border:1px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.1);color:white;font-size:15px;">
+      <div id="gene-search-ui" style="display:flex;align-items:center;gap:18px;margin-bottom:18px;">
+        <div id="perturbation-toggle-group" style="display:flex;flex-direction:column;gap:8px;">
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:15px;color:white;"><input type="radio" name="perturbation-type" value="KI" checked>⬆️ Overexpression</label>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:15px;color:white;"><input type="radio" name="perturbation-type" value="KO">⬇️ KO</label>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:15px;color:white;"><input type="radio" name="perturbation-type" value="KD">↘️ KD</label>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:15px;color:white;"><input type="radio" name="perturbation-type" value="KU">⬆️ KU</label>
         </div>
+        <input type="text" id="gene-search-input" placeholder="Search or enter gene symbol..." style="flex:1;padding:8px 12px;border-radius:6px;border:1px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.1);color:white;font-size:15px;">
+        <button id="add-gene-btn" class="button" style="margin-left:8px;min-width:70px;">Add</button>
       </div>
       <div style="font-size:12px;color:rgba(255,255,255,0.7);margin-bottom:8px;">Powered by NCBI GeneBank</div>
       <div id="ncbi-add-panel" style="display:none;margin-bottom:8px;"></div>
@@ -672,6 +677,7 @@ document.addEventListener('DOMContentLoaded',() => {
   let autocompleteDropdown = null;
   let autocompleteItems = [];
   let selectedIndex = -1;
+  let selectedGeneSymbol = null;
 
   function closeAutocompleteDropdown() {
     if (autocompleteDropdown) {
@@ -760,7 +766,8 @@ document.addEventListener('DOMContentLoaded',() => {
           row.addEventListener('mousedown', () => {
             geneSearchInput.value = symbol;
             closeAutocompleteDropdown();
-            showPerturbationDropdown(symbol);
+            selectedGeneSymbol = symbol;
+            addGeneBtn.disabled = false;
             filterGeneModules();
           });
           row.addEventListener('mouseenter', () => {
@@ -826,53 +833,24 @@ document.addEventListener('DOMContentLoaded',() => {
     }
   });
 
+  document.getElementById('add-gene-btn').addEventListener('click', function() {
+    if (!selectedGeneSymbol) return;
+    const type = document.querySelector('input[name="perturbation-type"]:checked').value;
+    let displayGene = selectedGeneSymbol;
+    let moduleType = 'overexpression';
+    if (type === 'KO') { displayGene = `KO:${selectedGeneSymbol}`; moduleType = 'gRNA'; }
+    else if (type === 'KD') { displayGene = `KD:${selectedGeneSymbol}`; moduleType = 'gRNA'; }
+    else if (type === 'KU') { displayGene = `KU:${selectedGeneSymbol}`; moduleType = 'overexpression'; }
+    // KI is just the gene name, overexpression
+    addGene(displayGene, moduleType);
+    selectedGeneSymbol = null;
+    geneSearchInput.value = '';
+    addGeneBtn.disabled = true;
+  });
+
   function showPerturbationDropdown(geneSymbol) {
-    const dropdown = document.createElement('select');
-    dropdown.id = 'perturbation-type-dropdown';
-    dropdown.style.margin = '8px 0';
-    dropdown.style.padding = '8px 12px';
-    dropdown.style.borderRadius = '6px';
-    dropdown.style.fontSize = '16px';
-    dropdown.style.background = '#fff';
-    dropdown.style.color = '#8C1515';
-    dropdown.style.border = '1px solid #8C1515';
-    const options = [
-      { value: 'KO', label: `Add as KO: ${geneSymbol}` },
-      { value: 'KI', label: `Add as KI: ${geneSymbol}` },
-      { value: 'KD', label: `Add as KD: ${geneSymbol}` },
-      { value: 'KU', label: `Add as KU: ${geneSymbol}` }
-    ];
-    const defaultOption = document.createElement('option');
-    defaultOption.value = '';
-    defaultOption.textContent = 'Select perturbation type...';
-    defaultOption.disabled = true;
-    defaultOption.selected = true;
-    dropdown.appendChild(defaultOption);
-    options.forEach(opt => {
-      const o = document.createElement('option');
-      o.value = opt.value;
-      o.textContent = opt.label;
-      dropdown.appendChild(o);
-    });
-    dropdown.addEventListener('change', function() {
-      const type = dropdown.value;
-      let displayGene = geneSymbol;
-      let moduleType = 'overexpression';
-      if (type === 'KO') { displayGene = `KO:${geneSymbol}`; moduleType = 'gRNA'; }
-      else if (type === 'KD') { displayGene = `KD:${geneSymbol}`; moduleType = 'gRNA'; }
-      else if (type === 'KU') { displayGene = `KU:${geneSymbol}`; moduleType = 'overexpression'; }
-      // KI is just the gene name, overexpression
-      addGene(displayGene, moduleType);
-      dropdown.remove();
-      lastNcbiGene = null;
-      geneSearchInput.value = '';
-    });
-    // Remove any existing dropdown
-    const oldDropdown = document.getElementById('perturbation-type-dropdown');
-    if (oldDropdown) oldDropdown.remove();
-    // Insert after the search bar
-    const bar = document.getElementById('gene-search-bar-container');
-    bar.parentNode.insertBefore(dropdown, bar.nextSibling);
+    // This function is no longer needed as the dropdown is removed.
+    // The logic for adding genes based on type is now handled by the new UI.
   }
 
   // Perturbation type toggles logic
@@ -1232,11 +1210,8 @@ document.addEventListener('DOMContentLoaded',() => {
   // Add a document mousedown event listener to dismiss the perturbation type dropdown
 
 document.addEventListener('mousedown', function(e) {
-  const dropdown = document.getElementById('perturbation-type-dropdown');
-  if (dropdown && !dropdown.contains(e.target) && e.target !== dropdown) {
-    dropdown.remove();
-    lastNcbiGene = null;
-  }
+  // This listener is no longer needed as the dropdown is removed.
+  // The logic for adding genes based on type is now handled by the new UI.
 });
 
   // Init
