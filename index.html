@@ -201,33 +201,23 @@ input::placeholder,textarea::placeholder {color:#fff;opacity:.7;}
       <div id="ncbi-add-panel" style="display:none;margin-bottom:8px;"></div>
       <div id="no-gene-results" style="display:none;font-size:15px;color:#fff;background:rgba(140,21,21,0.7);padding:8px 12px;border-radius:6px;margin-bottom:8px;">No matching gene modules found in this library.</div>
       <div id="limit-warning" class="limit-warning">Limit reached (5 perturbations)</div>
-      <ul class="perturbation-list">
-        <li data-target="knock-in-modules">Knock-ins (Overexpression)</li>
-        <div id="knock-in-modules" class="module-container hidden">
+      <ul class="perturbation-list" style="display:flex;flex-wrap:wrap;gap:10px;">
+        <div id="all-gene-modules" class="module-container" style="display:flex;flex-wrap:wrap;gap:10px;width:100%;">
           <div class="gene-module" draggable="true" data-type="overexpression" data-gene="BATF">BATF</div>
           <div class="gene-module" draggable="true" data-type="overexpression" data-gene="IRF4">IRF4</div>
-            <div class="gene-module" draggable="true" data-type="overexpression" data-gene="c-Jun">c-Jun</div>
+          <div class="gene-module" draggable="true" data-type="overexpression" data-gene="c-Jun">c-Jun</div>
           <div class="gene-module" draggable="true" data-type="overexpression" data-gene="IL-21">IL-21</div>
           <div class="gene-module" draggable="true" data-type="overexpression" data-gene="dnPD-1">dnPD-1</div>
           <div class="gene-module" draggable="true" data-type="overexpression" data-gene="BCL6">BCL6</div>
-        </div>
-        <li data-target="knock-out-modules">Knock-outs (Gene Disruption)</li>
-        <div id="knock-out-modules" class="module-container hidden">
           <div class="gene-module" draggable="true" data-type="gRNA" data-gene="KO:PDCD1">KO:PDCD1</div>
           <div class="gene-module" draggable="true" data-type="gRNA" data-gene="KO:CTLA4">KO:CTLA4</div>
           <div class="gene-module" draggable="true" data-type="gRNA" data-gene="KO:LAG3">KO:LAG3</div>
           <div class="gene-module" draggable="true" data-type="gRNA" data-gene="KO:DGK">KO:DGK</div>
           <div class="gene-module" draggable="true" data-type="gRNA" data-gene="KO:TET2">KO:TET2</div>
-        </div>
-        <li data-target="knock-down-modules">Knock-downs (CRISPRi)</li>
-        <div id="knock-down-modules" class="module-container hidden">
           <div class="gene-module" draggable="true" data-type="gRNA" data-gene="KD:SOCS1">KD:SOCS1</div>
           <div class="gene-module" draggable="true" data-type="gRNA" data-gene="KD:CBLB">KD:CBLB</div>
           <div class="gene-module" draggable="true" data-type="gRNA" data-gene="KD:NFKBIA">KD:NFKBIA</div>
           <div class="gene-module" draggable="true" data-type="gRNA" data-gene="KD:TGFBR1">KD:TGFBR1</div>
-        </div>
-        <li data-target="knock-up-modules">Knock-ups (CRISPRa)</li>
-        <div id="knock-up-modules" class="module-container hidden">
           <div class="gene-module" draggable="true" data-type="overexpression" data-gene="KU:IL2RA">KU:IL2RA</div>
           <div class="gene-module" draggable="true" data-type="overexpression" data-gene="KU:TBX21">KU:TBX21</div>
           <div class="gene-module" draggable="true" data-type="overexpression" data-gene="KU:IFNG">KU:IFNG</div>
@@ -377,7 +367,7 @@ document.addEventListener('DOMContentLoaded',() => {
   const mcNlInput=document.getElementById('mc-nl-input');
 
   const geneSearchInput=document.getElementById('gene-search-input');
-  const moduleToggles=document.querySelectorAll('.perturbation-list > li[data-target]');
+  // Remove moduleToggles
   const constructBuilder=document.getElementById('construct-builder');
 
   const randomizeBtn=document.getElementById('randomize-btn');
@@ -527,6 +517,7 @@ document.addEventListener('DOMContentLoaded',() => {
       }
       const div = document.createElement('div');
       div.className = 'gene-module'; div.style.cursor = 'default';
+      div.setAttribute('data-cassette-index', i);
       const { icon, color, tooltip } = getPerturbationIconAndTooltip(g, cassetteTypes[i]);
       if (icon) {
         const iconSpan = document.createElement('span');
@@ -671,17 +662,6 @@ document.addEventListener('DOMContentLoaded',() => {
     const g=e.dataTransfer.getData('gene');
     const t=e.dataTransfer.getData('type');
     if(g) addGene(g,t||'overexpression');
-  });
-
-  // Module category toggling
-  moduleToggles.forEach(t=>{
-    t.addEventListener('click',()=>{
-      const target=document.getElementById(t.dataset.target);
-      const active=t.classList.contains('active');
-      moduleToggles.forEach(x=>x.classList.remove('active'));
-      document.querySelectorAll('.module-container').forEach(c=>c.classList.add('hidden'));
-      if(!active){t.classList.add('active');target.classList.remove('hidden');}
-    });
   });
 
   // Search
@@ -1077,10 +1057,10 @@ document.addEventListener('DOMContentLoaded',() => {
     if(m>MAX_GENES) m=MAX_GENES;
     let pools=[];
     if(mode==='manual'){
-      if(document.getElementById('include-ki').checked) pools.push(...document.querySelectorAll('#knock-in-modules .gene-module'));
-      if(document.getElementById('include-ko').checked) pools.push(...document.querySelectorAll('#knock-out-modules .gene-module'));
-      if(document.getElementById('include-kd').checked) pools.push(...document.querySelectorAll('#knock-down-modules .gene-module'));
-      if(document.getElementById('include-ku').checked) pools.push(...document.querySelectorAll('#knock-up-modules .gene-module'));
+      if(document.getElementById('include-ki').checked) pools.push(...document.querySelectorAll('#all-gene-modules .gene-module'));
+      if(document.getElementById('include-ko').checked) pools.push(...document.querySelectorAll('#all-gene-modules .gene-module'));
+      if(document.getElementById('include-kd').checked) pools.push(...document.querySelectorAll('#all-gene-modules .gene-module'));
+      if(document.getElementById('include-ku').checked) pools.push(...document.querySelectorAll('#all-gene-modules .gene-module'));
     } else {
       // bias selection using NL descriptors
       const themes=[];
@@ -1133,11 +1113,11 @@ document.addEventListener('DOMContentLoaded',() => {
       child.removeEventListener('drop', child._ondrop);
     });
     // Only gene modules (not connectors or STOP-TAMPLEX) are draggable
-    Array.from(constructBuilder.children).forEach((child, idx) => {
+    Array.from(constructBuilder.children).forEach((child) => {
       if (child.classList.contains('gene-module') && child.textContent !== 'STOP-TAMPLEX') {
         child.draggable = true;
         child._ondragstart = function(e) {
-          e.dataTransfer.setData('cassette-index', idx);
+          e.dataTransfer.setData('cassette-index', child.getAttribute('data-cassette-index'));
           setTimeout(() => { child.style.opacity = '0.5'; }, 0);
         };
         child.addEventListener('dragstart', child._ondragstart);
@@ -1154,7 +1134,7 @@ document.addEventListener('DOMContentLoaded',() => {
           child.style.transform = '';
           child.style.opacity = '';
           const fromIdx = parseInt(e.dataTransfer.getData('cassette-index'));
-          const toIdx = idx;
+          const toIdx = parseInt(child.getAttribute('data-cassette-index'));
           reorderCassette(fromIdx, toIdx);
         };
         child.addEventListener('drop', child._ondrop);
