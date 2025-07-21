@@ -546,14 +546,17 @@ document.addEventListener('DOMContentLoaded',() => {
         if (cassetteTypes[i] === 'overexpression' && cassetteTypes[i + 1] !== 'gRNA') {
           const t2a = document.createElement('div');
           t2a.className = 'connector-wrapper';
-          t2a.innerHTML = '<span class="connector-label">[T2A]</span>';
+          t2a.innerHTML = '<span class="connector-label" style="color:#8C1515;font-weight:600;">[T2A]</span>';
           constructBuilder.appendChild(t2a);
         } else {
           // Show the user-selected connector as before
           const wrap = document.createElement('div');
           wrap.className = 'connector-wrapper';
           const label = document.createElement('span');
-          label.className = 'connector-label'; label.textContent = '→';
+          label.className = 'connector-label';
+          label.textContent = '→';
+          label.style.color = '#8C1515';
+          label.style.fontWeight = '600';
           const sel = document.createElement('select');
           sel.className = 'connector-select';
           const key = `${cassetteTypes[i]}-${cassetteTypes[i + 1]}`;
@@ -565,6 +568,10 @@ document.addEventListener('DOMContentLoaded',() => {
           sel.addEventListener('change', () => { connectors[i] = sel.value; updateCassetteString(); });
           wrap.appendChild(label); wrap.appendChild(sel);
           constructBuilder.appendChild(wrap);
+          // Style the select for better contrast
+          sel.style.color = '#8C1515';
+          sel.style.background = '#fff';
+          sel.style.fontWeight = '600';
         }
       }
       // Last KO/KD always has PolyA after it
