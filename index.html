@@ -723,6 +723,18 @@ document.addEventListener('DOMContentLoaded',() => {
     return Promise.all(promises);
   }
 
+  // Remove container-relative positioning and use viewport absolute positioning for the dropdown
+  // Add a function to position the dropdown below the input
+  function positionAutocompleteDropdown() {
+    if (!autocompleteDropdown) return;
+    const rect = geneSearchInput.getBoundingClientRect();
+    autocompleteDropdown.style.position = 'absolute';
+    autocompleteDropdown.style.left = rect.left + window.scrollX + 'px';
+    autocompleteDropdown.style.top = rect.bottom + window.scrollY + 'px';
+    autocompleteDropdown.style.width = rect.width + 'px';
+    autocompleteDropdown.style.zIndex = '10000';
+  }
+
   geneSearchInput.addEventListener('input', function() {
     const query = this.value.trim();
     closeAutocompleteDropdown();
@@ -744,8 +756,6 @@ document.addEventListener('DOMContentLoaded',() => {
         autocompleteDropdown.style.width = geneSearchInput.offsetWidth + 'px';
         autocompleteDropdown.style.maxHeight = '220px';
         autocompleteDropdown.style.overflowY = 'auto';
-        autocompleteDropdown.style.left = geneSearchInput.getBoundingClientRect().left + window.scrollX + 'px';
-        autocompleteDropdown.style.top = geneSearchInput.getBoundingClientRect().bottom + window.scrollY + 'px';
         autocompleteDropdown.style.boxShadow = '0 4px 16px rgba(0,0,0,0.12)';
         autocompleteDropdown.style.fontSize = '15px';
         autocompleteDropdown.style.padding = '4px 0';
@@ -770,8 +780,8 @@ document.addEventListener('DOMContentLoaded',() => {
           autocompleteDropdown.appendChild(row);
           autocompleteItems.push(row);
         });
-        const container = document.getElementById('gene-search-bar-container');
-        container.appendChild(autocompleteDropdown);
+        positionAutocompleteDropdown();
+        document.body.appendChild(autocompleteDropdown);
       }, 300);
     }
     filterGeneModules();
