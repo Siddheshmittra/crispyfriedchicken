@@ -154,9 +154,9 @@ input::placeholder,textarea::placeholder {color:#fff;opacity:.7;}
 }
 .inline-mode-toggle {margin:12px 0 8px;display:flex;gap:20px;color:#fff;font-size:14px;}
 .inline-mode-toggle label {cursor:pointer;}
-.autocomplete-suggestions{ z-index:10000 !important; position:absolute; background:#fff; color:#8C1515; border:1px solid #ccc; border-radius:6px; width:100%; max-height:220px; overflow-y:auto; }
-.autocomplete-suggestion{ padding:8px 12px; cursor:pointer; }
-.autocomplete-suggestion:hover{ background:#f5eaea; }
+.autocomplete-suggestions{ z-index:10000 !important; position:absolute; background:#fff; color:#8C1515; border:1px solid #ccc; border-radius:6px; width:100%; max-height:220px; overflow-y:auto; box-shadow:0 4px 16px rgba(0,0,0,0.12); font-size:15px; padding:4px 0; }
+.autocomplete-suggestion{ padding:8px 12px; cursor:pointer; transition:background 0.15s; }
+.autocomplete-suggestion.active, .autocomplete-suggestion:hover{ background:#f5eaea; }
 </style>
 </head>
 <body>
@@ -623,13 +623,18 @@ document.addEventListener('DOMContentLoaded',() => {
   // Search
   // Remove LHC/Def.Autocompleter code and implement custom autocomplete
   // Custom autocomplete for gene search input using Fetch API
+  // Enhanced autocomplete dropdown with keyboard navigation and better UX
   let searchTimeout;
   let autocompleteDropdown = null;
+  let autocompleteItems = [];
+  let selectedIndex = -1;
 
   function closeAutocompleteDropdown() {
     if (autocompleteDropdown) {
       autocompleteDropdown.remove();
       autocompleteDropdown = null;
+      autocompleteItems = [];
+      selectedIndex = -1;
     }
   }
 
@@ -686,24 +691,65 @@ document.addEventListener('DOMContentLoaded',() => {
         autocompleteDropdown.style.overflowY = 'auto';
         autocompleteDropdown.style.left = geneSearchInput.getBoundingClientRect().left + window.scrollX + 'px';
         autocompleteDropdown.style.top = geneSearchInput.getBoundingClientRect().bottom + window.scrollY + 'px';
+        autocompleteDropdown.style.boxShadow = '0 4px 16px rgba(0,0,0,0.12)';
+        autocompleteDropdown.style.fontSize = '15px';
+        autocompleteDropdown.style.padding = '4px 0';
+        autocompleteItems = [];
+        selectedIndex = -1;
 
-        items.forEach(({ symbol, name, hgnc_id }) => {
+        items.forEach(({ symbol, name, hgnc_id }, idx) => {
           const row = document.createElement('div');
           row.className = 'autocomplete-suggestion';
           row.textContent = `${symbol} — ${name} (${hgnc_id || ''})`;
+          row.tabIndex = -1;
+          row.style.transition = 'background 0.15s';
           row.addEventListener('mousedown', () => {
             geneSearchInput.value = symbol;
             closeAutocompleteDropdown();
             showNcbiAddPanel(symbol);
             filterGeneModules();
           });
+          row.addEventListener('mouseenter', () => {
+            setActiveItem(idx);
+          });
           autocompleteDropdown.appendChild(row);
+          autocompleteItems.push(row);
         });
         document.body.appendChild(autocompleteDropdown);
       }, 300);
     }
     filterGeneModules();
   });
+
+  geneSearchInput.addEventListener('keydown', function(e) {
+    if (!autocompleteDropdown || !autocompleteItems.length) return;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setActiveItem((selectedIndex + 1) % autocompleteItems.length);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setActiveItem((selectedIndex - 1 + autocompleteItems.length) % autocompleteItems.length);
+    } else if (e.key === 'Enter') {
+      if (selectedIndex >= 0 && autocompleteItems[selectedIndex]) {
+        autocompleteItems[selectedIndex].dispatchEvent(new Event('mousedown'));
+      }
+    } else if (e.key === 'Escape') {
+      closeAutocompleteDropdown();
+    }
+  });
+
+  function setActiveItem(idx) {
+    autocompleteItems.forEach((item, i) => {
+      if (i === idx) {
+        item.classList.add('active');
+        item.style.background = '#f5eaea';
+      } else {
+        item.classList.remove('active');
+        item.style.background = '';
+      }
+    });
+    selectedIndex = idx;
+  }
 
   geneSearchInput.addEventListener('blur', function() {
     setTimeout(closeAutocompleteDropdown, 150);
