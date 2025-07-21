@@ -620,27 +620,26 @@ document.addEventListener('DOMContentLoaded',() => {
 
   // Search
   // NCBI autocomplete for gene search
-  if (window.jQuery && $('#gene-search-input').length) {
-    $('#gene-search-input').autocomplete({
-      serviceUrl: 'https://clinicaltables.nlm.nih.gov/api/ncbi_genes/v3/search',
-      paramName: 'terms',
-      minChars: 2,
-      transformResult: function(response) {
-        var data = JSON.parse(response);
-        return {
-          suggestions: data[1].map(function(item, idx) {
-            return { value: item, data: data[2][idx] };
-          })
-        };
-      },
-      onSelect: function (suggestion) {
-        $('#gene-search-input').val(suggestion.value);
-        lastNcbiGene = suggestion.value;
-        showNcbiAddPanel(suggestion.value);
-        filterGeneModules();
-      }
-    });
-  }
+  console.log('Initializing autocomplete', window.jQuery, $.fn.autocomplete);
+  $('#gene-search-input').autocomplete({
+    serviceUrl: 'https://clinicaltables.nlm.nih.gov/api/ncbi_genes/v3/search',
+    paramName: 'terms',
+    minChars: 2,
+    transformResult: function(response) {
+      var data = JSON.parse(response);
+      return {
+        suggestions: data[1].map(function(item, idx) {
+          return { value: item, data: data[2][idx] };
+        })
+      };
+    },
+    onSelect: function (suggestion) {
+      $('#gene-search-input').val(suggestion.value);
+      lastNcbiGene = suggestion.value;
+      showNcbiAddPanel(suggestion.value);
+      filterGeneModules();
+    }
+  });
 
   function showNcbiAddPanel(geneSymbol) {
     // Get selected perturbation types
