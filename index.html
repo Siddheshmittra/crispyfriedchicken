@@ -497,49 +497,82 @@ document.addEventListener('DOMContentLoaded',() => {
     renderConstruct(); updateCassetteString();
   }
 
-  function renderConstruct(){
-    constructBuilder.innerHTML='';
-    if(!cassetteGenes.length){
-      constructBuilder.appendChild(Object.assign(document.createElement('div'),{className:'placeholder',textContent:'Select a module category, then drag genes here (max 5)'}));
+  // Update renderConstruct and updateCassetteString to enforce cassette rules
+  function renderConstruct() {
+    constructBuilder.innerHTML = '';
+    if (!cassetteGenes.length) {
+      constructBuilder.appendChild(Object.assign(document.createElement('div'), { className: 'placeholder', textContent: 'Select a module category, then drag genes here (max 5)' }));
       return;
     }
-    cassetteGenes.forEach((g,i)=>{
-      const div=document.createElement('div');
-      div.className='gene-module';div.textContent=g;div.style.cursor='default';
-      const rm=document.createElement('button');
-      rm.className='gene-remove-btn';rm.textContent='×';
-      rm.addEventListener('click',()=>removeGene(i));
+    let firstKOorKD = -1;
+    let lastKOorKD = -1;
+    cassetteTypes.forEach((type, i) => {
+      if (type === 'gRNA' && (cassetteGenes[i].startsWith('KO:') || cassetteGenes[i].startsWith('KD:'))) {
+        if (firstKOorKD === -1) firstKOorKD = i;
+        lastKOorKD = i;
+      }
+    });
+    cassetteGenes.forEach((g, i) => {
+      // Insert STOP-TAMPLEX before first KO/KD
+      if (i === firstKOorKD) {
+        const stopDiv = document.createElement('div');
+        stopDiv.className = 'gene-module';
+        stopDiv.textContent = 'STOP-TAMPLEX';
+        stopDiv.style.background = '#eee';
+        stopDiv.style.color = '#8C1515';
+        stopDiv.style.fontWeight = 'bold';
+        stopDiv.style.cursor = 'default';
+        constructBuilder.appendChild(stopDiv);
+      }
+      const div = document.createElement('div');
+      div.className = 'gene-module'; div.textContent = g; div.style.cursor = 'default';
+      const rm = document.createElement('button');
+      rm.className = 'gene-remove-btn'; rm.textContent = '×';
+      rm.addEventListener('click', () => removeGene(i));
       div.appendChild(rm);
       constructBuilder.appendChild(div);
-      if(i<cassetteGenes.length-1){
-        const wrap=document.createElement('div');
-        wrap.className='connector-wrapper';
-        const label=document.createElement('span');
-        label.className='connector-label';label.textContent='→';
-        const sel=document.createElement('select');
-        sel.className='connector-select';
-        const key=`${cassetteTypes[i]}-${cassetteTypes[i+1]}`;
-        (connectorTypes[key]||connectorTypes.default).forEach(c=>{
-          const opt=document.createElement('option');opt.value=c;opt.textContent=c;
-          if(connectors[i]===c) opt.selected=true;
-          sel.appendChild(opt);
-        });
-        sel.addEventListener('change',()=>{connectors[i]=sel.value;updateCassetteString();});
-        wrap.appendChild(label);wrap.appendChild(sel);
-        constructBuilder.appendChild(wrap);
+      // Overexpression always has T2A after it (unless last or next is KO/KD)
+      if (cassetteTypes[i] === 'overexpression') {
+        if (i < cassetteGenes.length - 1 && cassetteTypes[i + 1] !== 'gRNA') {
+          const t2a = document.createElement('div');
+          t2a.className = 'connector-wrapper';
+          t2a.innerHTML = '<span class="connector-label">[T2A]</span>';
+          constructBuilder.appendChild(t2a);
+        }
+      }
+      // Last KO/KD always has PolyA after it
+      if (i === lastKOorKD) {
+        const polyA = document.createElement('div');
+        polyA.className = 'connector-wrapper';
+        polyA.innerHTML = '<span class="connector-label">[PolyA]</span>';
+        constructBuilder.appendChild(polyA);
       }
     });
   }
 
-  function updateCassetteString(){
-    const parts=[];
-    cassetteGenes.forEach((g,i)=>{
-      parts.push(g);
-      if(i<connectors.length && connectors[i]) parts.push(`[${connectors[i]}]`);
+  function updateCassetteString() {
+    const parts = [];
+    let firstKOorKD = -1;
+    let lastKOorKD = -1;
+    cassetteTypes.forEach((type, i) => {
+      if (type === 'gRNA' && (cassetteGenes[i].startsWith('KO:') || cassetteGenes[i].startsWith('KD:'))) {
+        if (firstKOorKD === -1) firstKOorKD = i;
+        lastKOorKD = i;
+      }
     });
-    cassetteString.value=parts.join(' - ');
+    cassetteGenes.forEach((g, i) => {
+      if (i === firstKOorKD) parts.push('STOP-TAMPLEX');
+      parts.push(g);
+      if (cassetteTypes[i] === 'overexpression') {
+        if (i < cassetteGenes.length - 1 && cassetteTypes[i + 1] !== 'gRNA') {
+          parts.push('[T2A]');
+        }
+      }
+      if (i === lastKOorKD) parts.push('[PolyA]');
+    });
+    cassetteString.value = parts.join(' - ');
     buildPrediction();
-    if(isSequenceVisible) buildSequence();
+    if (isSequenceVisible) buildSequence();
   }
 
   function buildPrediction(){
