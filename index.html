@@ -620,23 +620,23 @@ document.addEventListener('DOMContentLoaded',() => {
   });
 
   // Search
+  // Replace the jQuery autocomplete initialization with the official Def.Autocompleter.Search
   // NCBI autocomplete for gene search
-  $('#gene-search-input').autocomplete({
-    serviceUrl: 'https://clinicaltables.nlm.nih.gov/api/ncbi_genes/v3/search',
-    paramName : 'terms',
-    dataType  : 'json',          // let the plugin handle JSON
-    minChars  : 2,
-    transformResult: function (data) {
-      return {
-        suggestions: $.map(data[1], function (symbol, idx) {
-          return { value: symbol, data: data[2][idx] };
-        })
-      };
-    },
-    onSelect: function (s) {
-      $('#gene-search-input').val(s.value);
-      lastNcbiGene = s.value;
-      showNcbiAddPanel(s.value);
+  new Def.Autocompleter.Search('gene-search-input', 
+    'https://clinicaltables.nlm.nih.gov/api/ncbi_genes/v3/search', {
+      tableFormat: true,
+      valueCols: [0], // gene symbol column
+      colHeaders: ['Symbol', 'Name'],
+      maxSelect: 1
+  });
+
+  // Add event listener for selection
+  Def.Autocompleter.Event.observeListSelections('gene-search-input', function() {
+    const inputField = document.getElementById('gene-search-input');
+    const selectedValue = inputField.value;
+    if (selectedValue && selectedValue !== lastNcbiGene) {
+      lastNcbiGene = selectedValue;
+      showNcbiAddPanel(selectedValue);
       filterGeneModules();
     }
   });
