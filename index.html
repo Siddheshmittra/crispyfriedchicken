@@ -1096,6 +1096,100 @@ document.addEventListener('DOMContentLoaded',() => {
     libraryOutputContainer.classList.remove('hidden');
   }
 
+  // Add drag-and-drop reordering to cassette modules
+  function enableCassetteDragAndDrop() {
+    // Remove any previous listeners
+    Array.from(constructBuilder.children).forEach(child => {
+      child.draggable = false;
+      child.removeEventListener('dragstart', child._ondragstart);
+      child.removeEventListener('dragover', child._ondragover);
+      child.removeEventListener('drop', child._ondrop);
+    });
+    // Only gene modules (not connectors or STOP-TAMPLEX) are draggable
+    Array.from(constructBuilder.children).forEach((child, idx) => {
+      if (child.classList.contains('gene-module') && child.textContent !== 'STOP-TAMPLEX') {
+        child.draggable = true;
+        child._ondragstart = function(e) {
+          e.dataTransfer.setData('cassette-index', idx);
+        };
+        child.addEventListener('dragstart', child._ondragstart);
+        child._ondragover = function(e) {
+          e.preventDefault();
+          child.style.background = '#f5eaea';
+        };
+        child.addEventListener('dragover', child._ondragover);
+        child._ondrop = function(e) {
+          e.preventDefault();
+          child.style.background = '';
+          const fromIdx = parseInt(e.dataTransfer.getData('cassette-index'));
+          const toIdx = idx;
+          reorderCassette(fromIdx, toIdx);
+        };
+        child.addEventListener('drop', child._ondrop);
+        child.addEventListener('dragleave', function() { child.style.background = ''; });
+      }
+    });
+  }
+
+  function reorderCassette(fromIdx, toIdx) {
+    if (fromIdx === toIdx) return;
+    // Move gene and type
+    const gene = cassetteGenes.splice(fromIdx, 1)[0];
+    const type = cassetteTypes.splice(fromIdx, 1)[0];
+    cassetteGenes.splice(toIdx, 0, gene);
+    cassetteTypes.splice(toIdx, 0, type);
+    // Re-enforce rules after reorder
+    enforceCassetteRules();
+    renderConstruct();
+    updateCassetteString();
+  }
+
+  function enforceCassetteRules() {
+    // 1. KO/KD always after overexpression
+    const overexpGenes = [], overexpTypes = [], koKdGenes = [], koKdTypes = [];
+    for (let i = 0; i < cassetteGenes.length; ++i) {
+      if (cassetteTypes[i] === 'gRNA' && (cassetteGenes[i].startsWith('KO:') || cassetteGenes[i].startsWith('KD:'))) {
+        koKdGenes.push(cassetteGenes[i]);
+        koKdTypes.push(cassetteTypes[i]);
+      } else {
+        overexpGenes.push(cassetteGenes[i]);
+        overexpTypes.push(cassetteTypes[i]);
+      }
+    }
+    cassetteGenes.length = 0;
+    cassetteTypes.length = 0;
+    cassetteGenes.push(...overexpGenes, ...koKdGenes);
+    cassetteTypes.push(...overexpTypes, ...koKdTypes);
+    // connectors array may need to be reset
+    connectors.length = Math.max(0, cassetteGenes.length - 1);
+    for (let i = 0; i < connectors.length; ++i) {
+      connectors[i] = chooseDefaultConnector(cassetteTypes[i], cassetteTypes[i + 1]);
+    }
+  }
+
+  // Patch renderConstruct to call enableCassetteDragAndDrop at the end
+  const _origRenderConstruct = renderConstruct;
+  renderConstruct = function() {
+    _origRenderConstruct.apply(this, arguments);
+    enableCassetteDragAndDrop();
+  };
+
+  // Patch addGene and removeGene to enforce rules after any change
+  const _origAddGene = addGene;
+  addGene = function(gene, type) {
+    _origAddGene.apply(this, arguments);
+    enforceCassetteRules();
+    renderConstruct();
+    updateCassetteString();
+  };
+  const _origRemoveGene = removeGene;
+  removeGene = function(index) {
+    _origRemoveGene.apply(this, arguments);
+    enforceCassetteRules();
+    renderConstruct();
+    updateCassetteString();
+  };
+
   // Init
   renderConstruct();updateCassetteString();
 });
