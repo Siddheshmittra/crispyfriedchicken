@@ -651,13 +651,13 @@ document.addEventListener('DOMContentLoaded',() => {
 
     // 2. hydrate each hit with the full name (parallel, but rate-safe)
     const promises = hits.map(async ({ hgnc_id, symbol }) => {
-      if (nameCache.has(symbol)) return { symbol, name: nameCache.get(symbol) };
+      if (nameCache.has(symbol)) return { symbol, name: nameCache.get(symbol), hgnc_id };
 
       const fURL = `https://rest.genenames.org/fetch/symbol/${encodeURIComponent(symbol)}`;
       const fRes = await fetch(fURL, JSON_HDR).then(r => r.json());
       const name = fRes.response?.docs?.[0]?.name || "(name unavailable)";
       nameCache.set(symbol, name);
-      return { symbol, name };
+      return { symbol, name, hgnc_id };
     });
 
     return Promise.all(promises);
@@ -687,10 +687,10 @@ document.addEventListener('DOMContentLoaded',() => {
         autocompleteDropdown.style.left = geneSearchInput.getBoundingClientRect().left + window.scrollX + 'px';
         autocompleteDropdown.style.top = geneSearchInput.getBoundingClientRect().bottom + window.scrollY + 'px';
 
-        items.forEach(({ symbol, name }) => {
+        items.forEach(({ symbol, name, hgnc_id }) => {
           const row = document.createElement('div');
           row.className = 'autocomplete-suggestion';
-          row.textContent = `${symbol} — ${name}`;
+          row.textContent = `${symbol} — ${name} (${hgnc_id || ''})`;
           row.addEventListener('mousedown', () => {
             geneSearchInput.value = symbol;
             closeAutocompleteDropdown();
