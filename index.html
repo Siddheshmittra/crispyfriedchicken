@@ -526,7 +526,21 @@ document.addEventListener('DOMContentLoaded',() => {
         constructBuilder.appendChild(stopDiv);
       }
       const div = document.createElement('div');
-      div.className = 'gene-module'; div.textContent = g; div.style.cursor = 'default';
+      div.className = 'gene-module'; div.style.cursor = 'default';
+      const { icon, color, tooltip } = getPerturbationIconAndTooltip(g, cassetteTypes[i]);
+      if (icon) {
+        const iconSpan = document.createElement('span');
+        iconSpan.textContent = icon;
+        iconSpan.style.marginRight = '6px';
+        iconSpan.style.fontSize = '18px';
+        iconSpan.style.verticalAlign = 'middle';
+        iconSpan.style.color = color;
+        iconSpan.title = tooltip;
+        div.appendChild(iconSpan);
+      }
+      const geneSpan = document.createElement('span');
+      geneSpan.textContent = stripGeneDisplay(g);
+      div.appendChild(geneSpan);
       constructBuilder.appendChild(div);
       // Cleaving protein connectors (except after last gene)
       if (i < cassetteGenes.length - 1) {
@@ -905,6 +919,22 @@ document.addEventListener('DOMContentLoaded',() => {
     return '';
   }
 
+  function getPerturbationIconAndTooltip(gene, type) {
+    if (type === 'gRNA') {
+      if (gene.startsWith('KO:')) return { icon: '⬇️', color: '#d32f2f', tooltip: 'Knock-out' };
+      if (gene.startsWith('KD:')) return { icon: '↘️', color: '#1976d2', tooltip: 'Knock-down' };
+    } else if (type === 'overexpression') {
+      if (gene.startsWith('KU:')) return { icon: '⬆️', color: '#388e3c', tooltip: 'Knock-up' };
+      // KI/overexpression (default)
+      return { icon: '⬆️', color: '#43a047', tooltip: 'Knock-in (Overexpression)' };
+    }
+    return { icon: '', color: '', tooltip: '' };
+  }
+
+  function stripGeneDisplay(gene) {
+    return gene.replace(/^KO:/, '').replace(/^KD:/, '').replace(/^KU:/, '');
+  }
+
   function filterGeneModules() {
     const q = geneSearchInput.value.toLowerCase();
     const selectedTypes = getSelectedPerturbationTypes();
@@ -1218,6 +1248,16 @@ document.addEventListener('DOMContentLoaded',() => {
     renderConstruct();
     updateCassetteString();
   };
+
+  // Add a document mousedown event listener to dismiss the perturbation type dropdown
+
+document.addEventListener('mousedown', function(e) {
+  const dropdown = document.getElementById('perturbation-type-dropdown');
+  if (dropdown && !dropdown.contains(e.target) && e.target !== dropdown) {
+    dropdown.remove();
+    lastNcbiGene = null;
+  }
+});
 
   // Init
   renderConstruct();updateCassetteString();
