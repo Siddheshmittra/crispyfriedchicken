@@ -210,25 +210,6 @@ input::placeholder,textarea::placeholder {color:#fff;opacity:.7;}
       <div id="limit-warning" class="limit-warning">Limit reached (5 perturbations)</div>
       <ul class="perturbation-list" style="display:flex;flex-wrap:wrap;gap:10px;">
         <div id="all-gene-modules" class="module-container" style="display:flex;flex-wrap:wrap;gap:10px;width:100%;">
-          <div class="gene-module" draggable="true" data-type="overexpression" data-gene="BATF">BATF</div>
-          <div class="gene-module" draggable="true" data-type="overexpression" data-gene="IRF4">IRF4</div>
-            <div class="gene-module" draggable="true" data-type="overexpression" data-gene="c-Jun">c-Jun</div>
-          <div class="gene-module" draggable="true" data-type="overexpression" data-gene="IL-21">IL-21</div>
-          <div class="gene-module" draggable="true" data-type="overexpression" data-gene="dnPD-1">dnPD-1</div>
-          <div class="gene-module" draggable="true" data-type="overexpression" data-gene="BCL6">BCL6</div>
-          <div class="gene-module" draggable="true" data-type="gRNA" data-gene="KO:PDCD1">KO:PDCD1</div>
-          <div class="gene-module" draggable="true" data-type="gRNA" data-gene="KO:CTLA4">KO:CTLA4</div>
-          <div class="gene-module" draggable="true" data-type="gRNA" data-gene="KO:LAG3">KO:LAG3</div>
-          <div class="gene-module" draggable="true" data-type="gRNA" data-gene="KO:DGK">KO:DGK</div>
-          <div class="gene-module" draggable="true" data-type="gRNA" data-gene="KO:TET2">KO:TET2</div>
-          <div class="gene-module" draggable="true" data-type="gRNA" data-gene="KD:SOCS1">KD:SOCS1</div>
-          <div class="gene-module" draggable="true" data-type="gRNA" data-gene="KD:CBLB">KD:CBLB</div>
-          <div class="gene-module" draggable="true" data-type="gRNA" data-gene="KD:NFKBIA">KD:NFKBIA</div>
-          <div class="gene-module" draggable="true" data-type="gRNA" data-gene="KD:TGFBR1">KD:TGFBR1</div>
-          <div class="gene-module" draggable="true" data-type="overexpression" data-gene="KU:IL2RA">KU:IL2RA</div>
-          <div class="gene-module" draggable="true" data-type="overexpression" data-gene="KU:TBX21">KU:TBX21</div>
-          <div class="gene-module" draggable="true" data-type="overexpression" data-gene="KU:IFNG">KU:IFNG</div>
-          <div class="gene-module" draggable="true" data-type="overexpression" data-gene="KU:GZMB">KU:GZMB</div>
         </div>
       </ul>
     </div>
@@ -1336,7 +1317,7 @@ document.addEventListener('mousedown', function(e) {
 
   // 4. Add an Import button for uploading a JSON file of perturbations
   const importCassetteBtn = document.createElement('button');
-  importCassetteBtn.textContent = 'Import Cassette';
+  importCassetteBtn.textContent = 'Import Library';
   importCassetteBtn.className = 'button';
   importCassetteBtn.style.margin = '12px 0 0 0';
   librarySection.appendChild(importCassetteBtn);
