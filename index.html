@@ -1308,6 +1308,72 @@ document.addEventListener('mousedown', function(e) {
 
   // Init
   renderConstruct();updateCassetteString();
+
+  // 1. Make the cassette area empty by default
+  cassetteGenes = [];
+  cassetteTypes = [];
+  connectors = [];
+  renderConstruct();
+  updateCassetteString();
+
+  // 2. Add a search bar above the library
+  const librarySection = document.getElementById('all-gene-modules').parentNode;
+  const librarySearch = document.createElement('input');
+  librarySearch.type = 'text';
+  librarySearch.placeholder = 'Search perturbations...';
+  librarySearch.style.width = '100%';
+  librarySearch.style.marginBottom = '12px';
+  librarySearch.style.padding = '8px 12px';
+  librarySearch.style.borderRadius = '6px';
+  librarySearch.style.border = '1px solid #8C1515';
+  librarySearch.style.fontSize = '15px';
+  librarySection.insertBefore(librarySearch, librarySection.firstChild);
+
+  // 3. Clicking a module in the library adds it to the cassette area
+  Array.from(document.querySelectorAll('#all-gene-modules .gene-module')).forEach(m => {
+    m.addEventListener('click', function() {
+      addGene(m.dataset.gene, m.dataset.type);
+    });
+  });
+
+  // 2.5. Filter modules as you type
+  librarySearch.addEventListener('input', function() {
+    const q = librarySearch.value.toLowerCase();
+    Array.from(document.querySelectorAll('#all-gene-modules .gene-module')).forEach(m => {
+      m.style.display = m.dataset.gene.toLowerCase().includes(q) ? '' : 'none';
+    });
+  });
+
+  // 4. Add an Import button for uploading a JSON file of perturbations
+  const importCassetteBtn = document.createElement('button');
+  importCassetteBtn.textContent = 'Import Cassette';
+  importCassetteBtn.className = 'button';
+  importCassetteBtn.style.margin = '12px 0 0 0';
+  librarySection.appendChild(importCassetteBtn);
+  const importCassetteInput = document.createElement('input');
+  importCassetteInput.type = 'file';
+  importCassetteInput.accept = '.json';
+  importCassetteInput.style.display = 'none';
+  librarySection.appendChild(importCassetteInput);
+  importCassetteBtn.addEventListener('click', () => importCassetteInput.click());
+  importCassetteInput.addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const obj = JSON.parse(reader.result);
+        cassetteGenes = (obj.cassetteGenes || []).slice(0, MAX_GENES);
+        cassetteTypes = obj.cassetteTypes || cassetteGenes.map(() => 'overexpression');
+        connectors = obj.connectors || [];
+        renderConstruct();
+        updateCassetteString();
+      } catch (err) {
+        alert('Invalid file');
+      }
+    };
+    reader.readAsText(file);
+  });
 });
 </script>
 </body>
