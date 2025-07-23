@@ -1307,14 +1307,12 @@ document.addEventListener('mousedown', function(e) {
 });
 
   // Init
-  renderConstruct();updateCassetteString();
-
-  // 1. Make the cassette area empty by default on page load and after reset/import
+  // 1. Ensure the cassette area is empty by default and only shows added modules
   cassetteGenes = [];
   cassetteTypes = [];
   connectors = [];
-  renderConstruct();
-  updateCassetteString();
+  // Only call renderConstruct and updateCassetteString after a module is added or imported, not on page load
+  // Remove any call to renderConstruct() and updateCassetteString() that would pre-populate the cassette area
 
   // 2. The library (module list) should not show any modules in the cassette area by default
   // (Already handled by above)
@@ -1329,12 +1327,12 @@ document.addEventListener('mousedown', function(e) {
   if (extraBar) extraBar.remove();
 
   // 2.5. Filter modules as you type
-  librarySearch.addEventListener('input', function() {
-    const q = librarySearch.value.toLowerCase();
-    Array.from(document.querySelectorAll('#all-gene-modules .gene-module')).forEach(m => {
-      m.style.display = m.dataset.gene.toLowerCase().includes(q) ? '' : 'none';
-    });
-  });
+  // librarySearch.addEventListener('input', function() { // This line is removed as per the new_code
+  //   const q = librarySearch.value.toLowerCase(); // This line is removed as per the new_code
+  //   Array.from(document.querySelectorAll('#all-gene-modules .gene-module')).forEach(m => { // This line is removed as per the new_code
+  //     m.style.display = m.dataset.gene.toLowerCase().includes(q) ? '' : 'none'; // This line is removed as per the new_code
+  //   }); // This line is removed as per the new_code
+  // }); // This line is removed as per the new_code
 
   // 4. Add an Import button for uploading a JSON file of perturbations
   const importCassetteBtn = document.createElement('button');
