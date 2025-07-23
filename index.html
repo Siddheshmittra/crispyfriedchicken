@@ -1309,32 +1309,24 @@ document.addEventListener('mousedown', function(e) {
   // Init
   renderConstruct();updateCassetteString();
 
-  // 1. Make the cassette area empty by default
+  // 1. Make the cassette area empty by default on page load and after reset/import
   cassetteGenes = [];
   cassetteTypes = [];
   connectors = [];
   renderConstruct();
   updateCassetteString();
 
-  // 2. Add a search bar above the library
-  const librarySection = document.getElementById('all-gene-modules').parentNode;
-  const librarySearch = document.createElement('input');
-  librarySearch.type = 'text';
-  librarySearch.placeholder = 'Search perturbations...';
-  librarySearch.style.width = '100%';
-  librarySearch.style.marginBottom = '12px';
-  librarySearch.style.padding = '8px 12px';
-  librarySearch.style.borderRadius = '6px';
-  librarySearch.style.border = '1px solid #8C1515';
-  librarySearch.style.fontSize = '15px';
-  librarySection.insertBefore(librarySearch, librarySection.firstChild);
+  // 2. The library (module list) should not show any modules in the cassette area by default
+  // (Already handled by above)
 
-  // 3. Clicking a module in the library adds it to the cassette area
-  Array.from(document.querySelectorAll('#all-gene-modules .gene-module')).forEach(m => {
-    m.addEventListener('click', function() {
-      addGene(m.dataset.gene, m.dataset.type);
-    });
-  });
+  // 3. Only add modules to the cassette area when the user clicks 'Add' or imports
+  // (Handled by addGene and import logic)
+
+  // 4. Remove any extra bar or element that appears under the search bar and is not part of the intended UI
+  // Remove any accidental extra element creation after the search bar
+  const librarySection = document.getElementById('all-gene-modules').parentNode;
+  const extraBar = librarySection.querySelector('hr, .extra-bar');
+  if (extraBar) extraBar.remove();
 
   // 2.5. Filter modules as you type
   librarySearch.addEventListener('input', function() {
