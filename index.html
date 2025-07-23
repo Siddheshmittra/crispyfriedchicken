@@ -194,12 +194,12 @@ input::placeholder,textarea::placeholder {color:#fff;opacity:.7;}
       <h2>2. Select Modules</h2>
       <div id="gene-search-ui" style="display:flex;align-items:center;gap:18px;margin-bottom:18px;">
         <div id="perturbation-toggle-group" style="display:flex;align-items:center;gap:18px;">
-          <div id="perturbation-toggle-switch" style="display:flex;gap:0;background:#fff;border-radius:24px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.04);">
-            <div class="perturbation-toggle-segment active" data-type="KI" style="padding:10px 22px;font-size:15px;cursor:pointer;color:#43a047;background:#e8f5e9;transition:background 0.2s, color 0.2s;">⬆️ Overexpression</div>
-            <div class="perturbation-toggle-segment" data-type="KO" style="padding:10px 22px;font-size:15px;cursor:pointer;color:#d32f2f;background:transparent;transition:background 0.2s, color 0.2s;">⬇️ KO</div>
-            <div class="perturbation-toggle-segment" data-type="KD" style="padding:10px 22px;font-size:15px;cursor:pointer;color:#1976d2;background:transparent;transition:background 0.2s, color 0.2s;">↘️ KD</div>
-            <div class="perturbation-toggle-segment" data-type="KU" style="padding:10px 22px;font-size:15px;cursor:pointer;color:#388e3c;background:transparent;transition:background 0.2s, color 0.2s;">⬆️ KU</div>
-          </div>
+          <select id="perturbation-type-dropdown" style="padding:10px 22px;font-size:15px;border-radius:18px;background:#fff;color:#43a047;font-weight:600;border:1.5px solid #43a047;min-width:180px;">
+            <option value="KI" selected>⬆️ Overexpression</option>
+            <option value="KO">⬇️ KO</option>
+            <option value="KD">↘️ KD</option>
+            <option value="KU">⬆️ KU</option>
+          </select>
         </div>
         <input type="text" id="gene-search-input" placeholder="Search or enter gene symbol..." style="flex:1;padding:8px 12px;border-radius:6px;border:1px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.1);color:white;font-size:15px;">
         <button id="add-gene-btn" class="button" style="margin-left:8px;min-width:70px;">Add</button>
@@ -868,44 +868,25 @@ document.addEventListener('DOMContentLoaded',() => {
     }
   });
 
-  // In the HTML, replace the vertical button group with a horizontal pill-style segmented toggle
+  // In the HTML, replace the segmented toggle with a single dropdown selector
   // <div id="perturbation-toggle-group" style="display:flex;align-items:center;gap:18px;">
-  //   <div id="perturbation-toggle-switch" style="display:flex;gap:0;background:#fff;border-radius:24px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.04);">
-  //     <div class="perturbation-toggle-segment active" data-type="KI" style="padding:10px 22px;font-size:15px;cursor:pointer;color:#43a047;background:#e8f5e9;transition:background 0.2s, color 0.2s;">⬆️ Overexpression</div>
-  //     <div class="perturbation-toggle-segment" data-type="KO" style="padding:10px 22px;font-size:15px;cursor:pointer;color:#d32f2f;background:transparent;transition:background 0.2s, color 0.2s;">⬇️ KO</div>
-  //     <div class="perturbation-toggle-segment" data-type="KD" style="padding:10px 22px;font-size:15px;cursor:pointer;color:#1976d2;background:transparent;transition:background 0.2s, color 0.2s;">↘️ KD</div>
-  //     <div class="perturbation-toggle-segment" data-type="KU" style="padding:10px 22px;font-size:15px;cursor:pointer;color:#388e3c;background:transparent;transition:background 0.2s, color 0.2s;">⬆️ KU</div>
-  //   </div>
+  //   <select id="perturbation-type-dropdown" style="padding:10px 22px;font-size:15px;border-radius:18px;background:#fff;color:#43a047;font-weight:600;border:1.5px solid #43a047;min-width:180px;">
+  //     <option value="KI" selected>⬆️ Overexpression</option>
+  //     <option value="KO">⬇️ KO</option>
+  //     <option value="KD">↘️ KD</option>
+  //     <option value="KU">⬆️ KU</option>
+  //   </select>
   // </div>
-  // Replace with:
-  // <div id="perturbation-toggle-group" style="display:flex;align-items:center;gap:18px;">
-  //   <div id="perturbation-toggle-switch" style="display:flex;gap:0;background:#fff;border-radius:24px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.04);">
-  //     <div class="perturbation-toggle-segment active" data-type="KI" style="padding:10px 22px;font-size:15px;cursor:pointer;color:#43a047;background:#e8f5e9;transition:background 0.2s, color 0.2s;">⬆️ Overexpression</div>
-  //     <div class="perturbation-toggle-segment" data-type="KO" style="padding:10px 22px;font-size:15px;cursor:pointer;color:#d32f2f;background:transparent;transition:background 0.2s, color 0.2s;">⬇️ KO</div>
-  //     <div class="perturbation-toggle-segment" data-type="KD" style="padding:10px 22px;font-size:15px;cursor:pointer;color:#1976d2;background:transparent;transition:background 0.2s, color 0.2s;">↘️ KD</div>
-  //     <div class="perturbation-toggle-segment" data-type="KU" style="padding:10px 22px;font-size:15px;cursor:pointer;color:#388e3c;background:transparent;transition:background 0.2s, color 0.2s;">⬆️ KU</div>
-  //   </div>
-  // </div>
-  // In the JS, replace the button logic with segmented toggle logic
+  // In the JS, replace the toggle logic with dropdown logic
   let selectedPerturbationType = 'KI';
-  document.querySelectorAll('.perturbation-toggle-segment').forEach(seg => {
-    seg.addEventListener('click', function() {
-      document.querySelectorAll('.perturbation-toggle-segment').forEach(s => {
-        s.classList.remove('active');
-        s.style.background = 'transparent';
-        s.style.color = s.getAttribute('data-type') === 'KI' ? '#43a047' :
-                        s.getAttribute('data-type') === 'KO' ? '#d32f2f' :
-                        s.getAttribute('data-type') === 'KD' ? '#1976d2' : '#388e3c';
-      });
-      seg.classList.add('active');
-      seg.style.background = seg.getAttribute('data-type') === 'KI' ? '#e8f5e9' :
-                            seg.getAttribute('data-type') === 'KO' ? '#ffebee' :
-                            seg.getAttribute('data-type') === 'KD' ? '#e3f2fd' : '#e8f5e9';
-      seg.style.color = seg.getAttribute('data-type') === 'KI' ? '#43a047' :
-                        seg.getAttribute('data-type') === 'KO' ? '#d32f2f' :
-                        seg.getAttribute('data-type') === 'KD' ? '#1976d2' : '#388e3c';
-      selectedPerturbationType = seg.getAttribute('data-type');
-    });
+  const perturbationTypeDropdown = document.getElementById('perturbation-type-dropdown');
+  perturbationTypeDropdown.addEventListener('change', function() {
+    selectedPerturbationType = perturbationTypeDropdown.value;
+    // Optionally update color based on selection
+    perturbationTypeDropdown.style.color = selectedPerturbationType === 'KI' ? '#43a047' :
+                                         selectedPerturbationType === 'KO' ? '#d32f2f' :
+                                         selectedPerturbationType === 'KD' ? '#1976d2' : '#388e3c';
+    perturbationTypeDropdown.style.borderColor = perturbationTypeDropdown.style.color;
   });
   // In the Add button handler, use selectedPerturbationType
   document.getElementById('add-gene-btn').addEventListener('click', function() {
