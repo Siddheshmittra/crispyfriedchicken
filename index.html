@@ -870,20 +870,6 @@ document.addEventListener('DOMContentLoaded',() => {
     perturbationTypeDropdown.style.borderColor = perturbationTypeDropdown.style.color;
   });
   // In the Add button handler, use selectedPerturbationType
-  document.getElementById('add-gene-btn').addEventListener('click', function() {
-    if (!selectedGeneSymbol) return;
-    const type = selectedPerturbationType;
-    let displayGene = selectedGeneSymbol;
-    let moduleType = 'overexpression';
-    if (type === 'KO') { displayGene = `KO:${selectedGeneSymbol}`; moduleType = 'gRNA'; }
-    else if (type === 'KD') { displayGene = `KD:${selectedGeneSymbol}`; moduleType = 'gRNA'; }
-    else if (type === 'KU') { displayGene = `KU:${selectedGeneSymbol}`; moduleType = 'overexpression'; }
-    // KI is just the gene name, overexpression
-    addGene(displayGene, moduleType);
-    selectedGeneSymbol = null;
-    geneSearchInput.value = '';
-    addGeneBtn.disabled = true;
-  });
 
   function showPerturbationDropdown(geneSymbol) {
     // This function is no longer needed as the dropdown is removed.
@@ -1313,8 +1299,10 @@ function renderUserLibrary() {
   });
 }
 
-// When a gene is added via the search bar, add it to the user library, not the construct
-document.getElementById('add-gene-btn').addEventListener('click', function() {
+
+// Inserted new Add button handler after perturbationTypeDropdown event
+const addGeneBtn = document.getElementById('add-gene-btn');
+addGeneBtn.addEventListener('click', function() {
   if (!selectedGeneSymbol) return;
   const type = selectedPerturbationType;
   let displayGene = selectedGeneSymbol;
@@ -1322,13 +1310,12 @@ document.getElementById('add-gene-btn').addEventListener('click', function() {
   if (type === 'KO') { displayGene = `KO:${selectedGeneSymbol}`; moduleType = 'gRNA'; }
   else if (type === 'KD') { displayGene = `KD:${selectedGeneSymbol}`; moduleType = 'gRNA'; }
   else if (type === 'KU') { displayGene = `KU:${selectedGeneSymbol}`; moduleType = 'overexpression'; }
-  // KI is just the gene name, overexpression
   userLibrary.push(displayGene);
   userLibraryTypes.push(moduleType);
   renderUserLibrary();
   selectedGeneSymbol = null;
   geneSearchInput.value = '';
-  addGeneBtn.disabled = true;
+  this.disabled = true;
 });
 
   // Init
