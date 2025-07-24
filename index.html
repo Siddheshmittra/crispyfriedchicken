@@ -455,40 +455,116 @@ document.addEventListener('DOMContentLoaded',() => {
   };
 
 
-  // --- Insert initialModules and renderInitialGeneModules ---
-  const moduleContainer = document.getElementById('all-gene-modules');
-  const initialModules = [
-    { gene: 'BATF', type: 'overexpression' },
-    { gene: 'IRF4', type: 'overexpression' },
-    { gene: 'c-Jun', type: 'overexpression' },
-    { gene: 'IL-21', type: 'overexpression' },
-    { gene: 'KO:PDCD1', type: 'gRNA' },
-    { gene: 'KD:SOCS1', type: 'gRNA' },
-    // add any others you need here
-  ];
+  // — INITIALIZE MODULE & USER-LIBRARY CONTAINERS —
+  const moduleContainer = document.getElementById('all-gene-modules')
+  const userLibraryContainer = document.createElement('div')
+  userLibraryContainer.id = 'user-library-container'
+  userLibraryContainer.style.cssText = 'display:flex;flex-wrap:wrap;gap:10px;margin:8px 0;'
+  moduleContainer.appendChild(userLibraryContainer)
 
+  // — BASE MODULES —
+  const initialModules = [
+    { gene: 'BATF',       type: 'overexpression' },
+    { gene: 'IRF4',       type: 'overexpression' },
+    { gene: 'c-Jun',      type: 'overexpression' },
+    { gene: 'IL-21',      type: 'overexpression' },
+    { gene: 'KO:PDCD1',   type: 'gRNA' },
+    { gene: 'KD:SOCS1',   type: 'gRNA' },
+  ]
   function renderInitialGeneModules() {
-    // Only render the base modules, not user library
-    // Remove all children except the userLibraryContainer (if present)
-    Array.from(moduleContainer.children).forEach(child => {
-      if (child !== userLibraryContainer) moduleContainer.removeChild(child);
-    });
+    // remove any old modules (but keep userLibraryContainer)
+    Array.from(moduleContainer.children)
+      .filter(c => c !== userLibraryContainer)
+      .forEach(c => moduleContainer.removeChild(c))
     initialModules.forEach(({gene,type}) => {
-      const div = document.createElement('div');
-      div.className = 'gene-module';
-      div.dataset.gene = gene;
-      div.dataset.type = type;
-      div.textContent = gene.replace(/^(KO:|KD:|KU:)/, '');
-      div.draggable = true;
+      const div = document.createElement('div')
+      div.className        = 'gene-module'
+      div.dataset.gene     = gene
+      div.dataset.type     = type
+      div.textContent      = gene.replace(/^(KO:|KD:|KU:)/, '')
+      div.draggable        = true
       div.addEventListener('dragstart', e => {
-        e.dataTransfer.setData('gene', gene);
-        e.dataTransfer.setData('type', type);
-      });
-      moduleContainer.insertBefore(div, userLibraryContainer);
-    });
+        e.dataTransfer.setData('gene', gene)
+        e.dataTransfer.setData('type', type)
+      })
+      moduleContainer.insertBefore(div, userLibraryContainer)
+    })
   }
 
-  // --- End initialModules block ---
+  // — USER LIBRARY —
+  let userLibrary = [], userLibraryTypes = []
+  function renderUserLibrary() {
+    userLibraryContainer.innerHTML = ''
+    userLibrary.forEach((g,i) => {
+      const div = document.createElement('div')
+      div.className    = 'gene-module'
+      div.dataset.gene = g
+      div.dataset.type = userLibraryTypes[i]
+      div.textContent  = g.replace(/^(KO:|KD:|KU:)/, '')
+      div.draggable    = true
+      div.addEventListener('dragstart', e => {
+        e.dataTransfer.setData('gene', g)
+        e.dataTransfer.setData('type', userLibraryTypes[i])
+      })
+      userLibraryContainer.appendChild(div)
+    })
+  }
+
+  // initial draw
+  renderInitialGeneModules()
+  renderUserLibrary()
+
+  // — CONSOLIDATE "ADD" BUTTON & SEARCH → USER LIBRARY —
+  const addGeneBtn          = document.getElementById('add-gene-btn')
+  const geneSearchInput     = document.getElementById('gene-search-input')
+  const perturbationDropdown= document.getElementById('perturbation-type-dropdown')
+  function handleAddModule() {
+    const sym = geneSearchInput.value.trim().toUpperCase()
+    if (!sym) return
+    let full = sym, type = 'overexpression'
+    switch (perturbationDropdown.value) {
+      case 'KO': type = 'gRNA'; full = `KO:${sym}`; break
+      case 'KD': type = 'gRNA'; full = `KD:${sym}`; break
+      case 'KU': type = 'overexpression'; full = `KU:${sym}`; break
+    }
+    userLibrary.push(full)
+    userLibraryTypes.push(type)
+    renderUserLibrary()
+    geneSearchInput.value = ''
+  }
+  addGeneBtn.addEventListener('click', handleAddModule)
+  geneSearchInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); handleAddModule() }
+  })
+
+  // — SINGLE DRAG/DROP INTO CONSTRUCT —
+  constructBuilder.addEventListener('dragover', e => e.preventDefault())
+  constructBuilder.addEventListener('drop', e => {
+    e.preventDefault()
+    const gene = e.dataTransfer.getData('gene')
+    const type = e.dataTransfer.getData('type')
+    if (gene) addGene(gene, type || 'overexpression')
+  })
+
+  // — SIMPLE TEXT FILTER —
+  function filterGeneModules() {
+    const q = geneSearchInput.value.toLowerCase()
+    let any = false
+    document.querySelectorAll('#all-gene-modules .gene-module')
+      .forEach(el => {
+        const ok = el.dataset.gene.toLowerCase().includes(q)
+        el.style.display = ok ? 'inline-block' : 'none'
+        if (ok) any = true
+      })
+    document.getElementById('no-gene-results').style.display = any ? 'none' : 'block'
+  }
+
+  // — FIX NL BRANCH & SAMPLE LOGIC —
+  // In generateLibrary(), replace:
+  //    pools = themes.map(g=>[...allGeneModules]…)
+  // with:
+  //    const builtins = Array.from(document.querySelectorAll('#all-gene-modules .gene-module'))
+  //    pools = themes.map(g => builtins.find(m=>m.dataset.gene===g)).filter(Boolean)
 
   function showLimitWarning(){
     limitWarning.style.display='block';
@@ -824,9 +900,7 @@ document.addEventListener('DOMContentLoaded',() => {
             geneSearchInput.value = symbol;
             closeAutocompleteDropdown();
             selectedGeneSymbol = symbol;
-            addLibraryModule(symbol);
-            geneSearchInput.value = '';
-            addGeneBtn.disabled = true;
+            addGeneBtn.disabled = false;
             filterGeneModules();
           });
           row.addEventListener('mouseenter', () => {
@@ -959,23 +1033,6 @@ document.addEventListener('DOMContentLoaded',() => {
     return gene.replace(/^KO:/, '').replace(/^KD:/, '').replace(/^KU:/, '');
   }
 
-  function filterGeneModules() {
-    const q = geneSearchInput.value.toLowerCase();
-    const selectedTypes = getSelectedPerturbationTypes();
-    let anyVisible = false;
-    document.querySelectorAll('.gene-module').forEach(g => {
-      const gene = g.dataset.gene;
-      const type = g.dataset.type;
-      const pertType = getGenePerturbationType(gene, type);
-      const matchesType = selectedTypes.includes(pertType);
-      const matchesSearch = gene.toLowerCase().includes(q);
-      const show = (matchesType && matchesSearch);
-      g.style.display = show ? 'inline-block' : 'none';
-      if (show) anyVisible = true;
-    });
-    document.getElementById('no-gene-results').style.display = anyVisible ? 'none' : 'block';
-  }
-
   // Randomize (respect limit)
   randomizeBtn.addEventListener('click',()=>{
     resetCassette();
@@ -1076,41 +1133,22 @@ document.addEventListener('DOMContentLoaded',() => {
   // Initialize visibility
   showUserLibraryIfNeeded();
 
-  function addLibraryModule(symbol) {
-    symbol = symbol.trim().toUpperCase();
-    if (!symbol) return;
+  // Ensure user library is always visible and updated after Add
+  addGeneBtn.addEventListener('click', function() {
+    if (!selectedGeneSymbol) return;
     const type = selectedPerturbationType;
-    let displayGene = symbol;
+    let displayGene = selectedGeneSymbol;
     let moduleType = 'overexpression';
-    if (type === 'KO' || type === 'KD') {
-      displayGene = `${type}:${symbol}`;
-      moduleType = 'gRNA';
-    } else if (type === 'KU') {
-      displayGene = `KU:${symbol}`;
-    }
+    if (type === 'KO') { displayGene = `KO:${selectedGeneSymbol}`; moduleType = 'gRNA'; }
+    else if (type === 'KD') { displayGene = `KD:${selectedGeneSymbol}`; moduleType = 'gRNA'; }
+    else if (type === 'KU') { displayGene = `KU:${selectedGeneSymbol}`; moduleType = 'overexpression'; }
     userLibrary.push(displayGene);
     userLibraryTypes.push(moduleType);
     renderUserLibrary();
     userLibraryContainer.style.display = 'flex';
-  }
-
-  // Ensure user library is always visible and updated after Add
-  addGeneBtn.addEventListener('click', function() {
-    addLibraryModule(geneSearchInput.value);
     selectedGeneSymbol = null;
     geneSearchInput.value = '';
     this.disabled = true;
-  });
-
-  geneSearchInput.addEventListener('keypress', (event) => {
-    if (event.key === 'Enter') {
-      event.preventDefault();
-      addLibraryModule(geneSearchInput.value);
-      geneSearchInput.value = '';
-      selectedGeneSymbol = null;
-      addGeneBtn.disabled = true;
-      closeAutocompleteDropdown();
-    }
   });
 
   // Multi-cassette internal mode
@@ -1507,6 +1545,82 @@ document.addEventListener('mousedown', function(e) {
   renderInitialGeneModules();
   renderUserLibrary();
 
+  // --- FIX: ADD THIS ENTIRE BLOCK TO YOUR SCRIPT ---
+
+  // Make sure you have the elements needed for this feature
+  const addGeneBtn = document.getElementById('add-gene-btn');
+  const geneSearchInput = document.getElementById('gene-search-input');
+  const perturbationDropdown = document.getElementById('perturbation-type-dropdown');
+  
+  // This is the container for user-added modules we discussed previously
+  // Ensure it's defined and present in the DOM
+  const userLibraryContainer = document.getElementById('user-library-container');
+
+  // This function contains the logic to create and add a new module
+  function addNewPerturbation() {
+    const geneName = geneSearchInput.value.trim().toUpperCase();
+    if (!geneName) {
+      // Don't do anything if the input is empty
+      return; 
+    }
+
+    const perturbationPrefix = perturbationDropdown.value; // e.g., 'KI', 'KO'
+    
+    // Your code uses internal types 'overexpression' and 'gRNA'. Let's map to them.
+    let internalType;
+    let fullGeneId = geneName; // Default for KI
+
+    switch(perturbationPrefix) {
+        case 'KI':
+        case 'KU':
+            internalType = 'overexpression';
+            // Prepend KU: for knock-up
+            if (perturbationPrefix === 'KU') fullGeneId = `KU:${geneName}`;
+            break;
+        case 'KO':
+        case 'KD':
+            internalType = 'gRNA';
+            // Prepend KO: or KD: for knock-out/down
+            fullGeneId = `${perturbationPrefix}:${geneName}`;
+            break;
+        default:
+            internalType = 'overexpression';
+    }
+
+    // Create the new draggable element
+    const newModule = document.createElement('div');
+    newModule.className = 'gene-module';
+    newModule.textContent = geneName; // Display only the gene name
+    newModule.dataset.gene = fullGeneId; // Store the full identifier
+    newModule.dataset.type = internalType;
+    newModule.draggable = true;
+
+    // Add the drag-and-drop functionality
+    newModule.addEventListener('dragstart', (e) => {
+      e.dataTransfer.setData('gene', newModule.dataset.gene);
+      e.dataTransfer.setData('type', newModule.dataset.type);
+    });
+
+    // **Crucially, add the new module to your user-specific container**
+    // This prevents it from being deleted if the initial modules are ever re-rendered.
+    userLibraryContainer.appendChild(newModule);
+
+    // Clear the input field for the next entry
+    geneSearchInput.value = '';
+  }
+
+  // 1. Attach the function to the 'Add' button
+  addGeneBtn.addEventListener('click', addNewPerturbation);
+
+  // 2. (Optional but recommended) Allow adding by pressing 'Enter'
+  geneSearchInput.addEventListener('keypress', (event) => {
+    if (event.key === 'Enter') {
+      event.preventDefault(); // Prevents any default browser action
+      addNewPerturbation();
+    }
+  });
+
+  // --- END OF FIX ---
 });
 </script>
 </body>
