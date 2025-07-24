@@ -1332,6 +1332,23 @@ document.addEventListener('mousedown', function(e) {
   // The logic for adding genes based on type is now handled by the new UI.
 });
 
+  // --- Ensure correct initial visibility for natural language panel ---
+  function updateSingleSubmode() {
+    const sub = document.querySelector('input[name="single-submode"]:checked').value;
+    const naturalLanguageContainer = document.getElementById('natural-language-container');
+    const manualToolContainer = document.getElementById('manual-tool-container');
+    naturalLanguageContainer.classList.toggle('hidden', sub !== 'natural');
+    manualToolContainer.classList.toggle('hidden', sub !== 'manual');
+  }
+
+  // Call this on load to ensure correct panel is visible
+  updateSingleSubmode();
+
+  // Also ensure the event listeners for submode toggles are set up
+  document.querySelectorAll('input[name="single-submode"]').forEach(r =>
+    r.addEventListener('change', updateSingleSubmode)
+  );
+
   // Init
   renderConstruct();updateCassetteString();
 });
