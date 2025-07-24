@@ -1287,6 +1287,50 @@ document.addEventListener('mousedown', function(e) {
   // The logic for adding genes based on type is now handled by the new UI.
 });
 
+  // Add a new area below the search bar for the user's custom library
+let userLibrary = [];
+let userLibraryTypes = [];
+const userLibraryContainer = document.createElement('div');
+userLibraryContainer.id = 'user-library-container';
+userLibraryContainer.style.display = 'flex';
+userLibraryContainer.style.flexWrap = 'wrap';
+userLibraryContainer.style.gap = '10px';
+userLibraryContainer.style.margin = '16px 0';
+const searchUI = document.getElementById('gene-search-ui');
+searchUI.parentNode.insertBefore(userLibraryContainer, searchUI.nextSibling);
+
+function renderUserLibrary() {
+  userLibraryContainer.innerHTML = '';
+  userLibrary.forEach((gene, i) => {
+    const div = document.createElement('div');
+    div.className = 'gene-module';
+    div.textContent = gene;
+    div.style.cursor = 'pointer';
+    div.addEventListener('click', () => {
+      addGene(gene, userLibraryTypes[i]);
+    });
+    userLibraryContainer.appendChild(div);
+  });
+}
+
+// When a gene is added via the search bar, add it to the user library, not the construct
+document.getElementById('add-gene-btn').addEventListener('click', function() {
+  if (!selectedGeneSymbol) return;
+  const type = selectedPerturbationType;
+  let displayGene = selectedGeneSymbol;
+  let moduleType = 'overexpression';
+  if (type === 'KO') { displayGene = `KO:${selectedGeneSymbol}`; moduleType = 'gRNA'; }
+  else if (type === 'KD') { displayGene = `KD:${selectedGeneSymbol}`; moduleType = 'gRNA'; }
+  else if (type === 'KU') { displayGene = `KU:${selectedGeneSymbol}`; moduleType = 'overexpression'; }
+  // KI is just the gene name, overexpression
+  userLibrary.push(displayGene);
+  userLibraryTypes.push(moduleType);
+  renderUserLibrary();
+  selectedGeneSymbol = null;
+  geneSearchInput.value = '';
+  addGeneBtn.disabled = true;
+});
+
   // Init
   // 1. Ensure the cassette area is empty by default and only shows added modules
   cassetteGenes = [];
