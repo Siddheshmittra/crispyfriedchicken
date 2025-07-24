@@ -173,13 +173,18 @@ input::placeholder,textarea::placeholder {color:#fff;opacity:.7;}
   <div class="section">
     <h2>1. Design Mode</h2>
     <div class="radio-group">
-      <input type="radio" id="natural-language-mode" name="design-mode" value="natural">
-      <label for="natural-language-mode">Natural Language</label>
-      <input type="radio" id="manual-mode" name="design-mode" value="manual" checked>
-      <label for="manual-mode">Manual</label>
+      <input type="radio" id="single-cassette-mode" name="design-mode" value="single" checked>
+      <label for="single-cassette-mode">Single Cassette</label>
       <input type="radio" id="multi-cassette-mode" name="design-mode" value="multi">
       <label for="multi-cassette-mode">Multi-Cassette</label>
     </div>
+    <div id="single-mode-toggle" class="radio-group hidden">
+      <input type="radio" id="single-nl-mode" name="single-mode" value="natural">
+      <label for="single-nl-mode">Natural Language</label>
+      <input type="radio" id="single-manual-mode" name="single-mode" value="manual" checked>
+      <label for="single-manual-mode">Manual</label>
+    </div>
+    <div id="single-tool-container" class="hidden">
     <div id="natural-language-container" class="hidden">
       <input type="text" id="natural-language-input" placeholder="e.g., 'Enhance persistence and cytotoxicity' (Enter)">
       <div id="reasoning-display" class="reasoning-container hidden">
@@ -232,6 +237,7 @@ input::placeholder,textarea::placeholder {color:#fff;opacity:.7;}
         </div>
       </ul>
     </div>
+  </div>
   </div>
 
   <!-- Multi-cassette mode (with internal modes) -->
@@ -1029,13 +1035,33 @@ document.addEventListener('DOMContentLoaded',() => {
     el.addEventListener('input',()=>{if(isSequenceVisible) buildSequence();});
   });
 
-  // Global mode switching
+  // Global mode switching between single and multi-cassette
   modeToggles.forEach(r=>{
     r.addEventListener('change',()=>{
-      const mode=document.querySelector('input[name="design-mode"]:checked').value;
-      naturalLanguageContainer.classList.toggle('hidden',mode!=='natural');
-      manualToolContainer.classList.toggle('hidden',mode!=='manual');
-      multiCassetteToolContainer.classList.toggle('hidden',mode!=='multi');
+      const mode = document.querySelector('input[name="design-mode"]:checked').value;
+      const singleToggle = document.getElementById('single-mode-toggle');
+      const singleContainer = document.getElementById('single-tool-container');
+      if(mode==='single'){
+        singleToggle.classList.remove('hidden');
+        singleContainer.classList.remove('hidden');
+        multiCassetteToolContainer.classList.add('hidden');
+        const submode = document.querySelector('input[name="single-mode"]:checked').value;
+        naturalLanguageContainer.classList.toggle('hidden', submode!=='natural');
+        manualToolContainer.classList.toggle('hidden', submode!=='manual');
+      } else {
+        singleToggle.classList.add('hidden');
+        singleContainer.classList.add('hidden');
+        multiCassetteToolContainer.classList.remove('hidden');
+      }
+    });
+  });
+
+  // Nested single mode switching
+  document.querySelectorAll('input[name="single-mode"]').forEach(r=>{
+    r.addEventListener('change',()=>{
+      const submode = document.querySelector('input[name="single-mode"]:checked').value;
+      naturalLanguageContainer.classList.toggle('hidden', submode!=='natural');
+      manualToolContainer.classList.toggle('hidden', submode!=='manual');
     });
   });
 
