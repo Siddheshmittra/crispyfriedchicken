@@ -231,17 +231,20 @@ input::placeholder,textarea::placeholder {color:#fff;opacity:.7;}
           <input id="num-cassettes" type="number" value="10" min="1" max="200">
         </div>
         <div class="form-row">
-          <label for="num-modules">Modules per Cassette:</label>
-          <input id="num-modules" type="number" value="3" min="1" max="5">
+          <label for="count-ki"># Overexpressions (KI):</label>
+          <input id="count-ki" type="number" value="2" min="0" max="5">
         </div>
         <div class="form-row">
-          <label>Perturbation Types:</label>
-          <div style="display:flex;gap:15px;flex-wrap:wrap;">
-            <label style="width:auto;"><input type="checkbox" id="include-ki" checked> KI</label>
-            <label style="width:auto;"><input type="checkbox" id="include-ko" checked> KO</label>
-            <label style="width:auto;"><input type="checkbox" id="include-kd" checked> KD</label>
-            <label style="width:auto;"><input type="checkbox" id="include-ku" checked> KU</label>
-          </div>
+          <label for="count-ko"># Knockouts (KO):</label>
+          <input id="count-ko" type="number" value="1" min="0" max="5">
+        </div>
+        <div class="form-row">
+          <label for="count-kd"># Knockdowns (KD):</label>
+          <input id="count-kd" type="number" value="1" min="0" max="5">
+        </div>
+        <div class="form-row">
+          <label for="count-ku"># Knock-ups (KU):</label>
+          <input id="count-ku" type="number" value="0" min="0" max="5">
         </div>
         <div style="text-align:right;margin-top:8px;">
           <button id="generate-library-btn" class="button">Generate</button>
@@ -451,7 +454,41 @@ document.addEventListener('DOMContentLoaded',() => {
     'KU:GZMB':'ATGGCTGATGATGACGCTGCTGCT'
   };
 
-  const allGeneModules=document.querySelectorAll('.gene-module');
+
+  // --- Insert initialModules and renderInitialGeneModules ---
+  const moduleContainer = document.getElementById('all-gene-modules');
+  const initialModules = [
+    { gene: 'BATF', type: 'overexpression' },
+    { gene: 'IRF4', type: 'overexpression' },
+    { gene: 'c-Jun', type: 'overexpression' },
+    { gene: 'IL-21', type: 'overexpression' },
+    { gene: 'KO:PDCD1', type: 'gRNA' },
+    { gene: 'KD:SOCS1', type: 'gRNA' },
+    // add any others you need here
+  ];
+
+  function renderInitialGeneModules() {
+    // Only render the base modules, not user library
+    // Remove all children except the userLibraryContainer (if present)
+    Array.from(moduleContainer.children).forEach(child => {
+      if (child !== userLibraryContainer) moduleContainer.removeChild(child);
+    });
+    initialModules.forEach(({gene,type}) => {
+      const div = document.createElement('div');
+      div.className = 'gene-module';
+      div.dataset.gene = gene;
+      div.dataset.type = type;
+      div.textContent = gene.replace(/^(KO:|KD:|KU:)/, '');
+      div.draggable = true;
+      div.addEventListener('dragstart', e => {
+        e.dataTransfer.setData('gene', gene);
+        e.dataTransfer.setData('type', type);
+      });
+      moduleContainer.insertBefore(div, userLibraryContainer);
+    });
+  }
+
+  // --- End initialModules block ---
 
   function showLimitWarning(){
     limitWarning.style.display='block';
@@ -1086,8 +1123,8 @@ document.addEventListener('DOMContentLoaded',() => {
     if(/cytotox|kill|granzyme/i.test(text)) picks.push('KU:GZMB','KU:IFNG');
     if(!picks.length) picks.push('BATF','IL-21','KO:PDCD1');
     [...new Set(picks)].slice(0,MAX_GENES).forEach(g=>{
-      const el=[...allGeneModules].find(m=>m.dataset.gene===g);
-      addGene(g, el?el.dataset.type:'overexpression');
+      const el = [...document.querySelectorAll('.gene-module')].find(m => m.dataset.gene === g);
+      addGene(g, el ? el.dataset.type : 'overexpression');
     });
   }
 
@@ -1101,15 +1138,33 @@ document.addEventListener('DOMContentLoaded',() => {
   });
 
   function generateLibrary(mode, nlText=''){
-    const n=parseInt(numCassettesInput.value)||1;
-    let m=parseInt(numModulesInput.value)||1;
-    if(m>MAX_GENES) m=MAX_GENES;
-    let pools=[];
+    const n = parseInt(numCassettesInput.value)||1;
+    // Multi-cassette manual: use new counts for each type
+    const countKI = parseInt(document.getElementById('count-ki').value) || 0;
+    const countKO = parseInt(document.getElementById('count-ko').value) || 0;
+    const countKD = parseInt(document.getElementById('count-kd').value) || 0;
+    const countKU = parseInt(document.getElementById('count-ku').value) || 0;
+    let pools = [];
     if(mode==='manual'){
-      if(document.getElementById('include-ki').checked) pools.push(...document.querySelectorAll('#all-gene-modules .gene-module'));
-      if(document.getElementById('include-ko').checked) pools.push(...document.querySelectorAll('#all-gene-modules .gene-module'));
-      if(document.getElementById('include-kd').checked) pools.push(...document.querySelectorAll('#all-gene-modules .gene-module'));
-      if(document.getElementById('include-ku').checked) pools.push(...document.querySelectorAll('#all-gene-modules .gene-module'));
+      // Build a pool of modules by specified counts
+      pools = [];
+      // Helper to sample n from elements matching selector
+      function sampleModules(selector, n) {
+        const elems = Array.from(document.querySelectorAll(selector));
+        for(let i=0;i<n && elems.length>0;i++){
+          const idx = Math.floor(Math.random()*elems.length);
+          pools.push(elems[idx]);
+          elems.splice(idx,1);
+        }
+      }
+      sampleModules('#all-gene-modules .gene-module[data-type="overexpression"]:not([data-gene^="KU:"])', countKI);
+      sampleModules('#all-gene-modules .gene-module[data-type="gRNA"][data-gene^="KO:"]', countKO);
+      sampleModules('#all-gene-modules .gene-module[data-type="gRNA"][data-gene^="KD:"]', countKD);
+      sampleModules('#all-gene-modules .gene-module[data-type="overexpression"][data-gene^="KU:"]', countKU);
+      if(pools.length === 0){
+        alert('Specify at least one perturbation count.');
+        return;
+      }
     } else {
       // bias selection using NL descriptors
       const themes=[];
@@ -1120,13 +1175,12 @@ document.addEventListener('DOMContentLoaded',() => {
       if(!themes.length) themes.push('BATF','IL-21','KO:PDCD1','KU:GZMB');
       pools=[...new Set(themes)].map(g=>[...allGeneModules].find(m=>m.dataset.gene===g)).filter(Boolean);
     }
-    if(!pools.length){alert('No perturbation types selected');return;}
     libraryOutputList.innerHTML='';
     for(let i=0;i<n;i++){
       const genes=[],types=[];
       const localPool=[...pools];
-      for(let j=0;j<m;j++){
-        const pick=localPool[Math.floor(Math.random()*localPool.length)];
+      for(let j=0;j<localPool.length;j++){
+        const pick=localPool[j];
         genes.push(pick.dataset.gene);
         types.push(pick.dataset.type);
       }
@@ -1322,92 +1376,81 @@ document.addEventListener('mousedown', function(e) {
 });
 
   // Add a new area below the search bar for the user's custom library
-let userLibrary = [];
-let userLibraryTypes = [];
-// Insert user library as draggable modules inside the dashed module-container
-const userLibraryContainer = document.createElement('div');
-userLibraryContainer.id = 'user-library-container';
-userLibraryContainer.style.display = 'flex';
-userLibraryContainer.style.flexWrap = 'wrap';
-userLibraryContainer.style.gap = '10px';
-userLibraryContainer.style.margin = '8px 0'; // small gap at top and bottom
-const moduleContainer = document.getElementById('all-gene-modules');
-moduleContainer.appendChild(userLibraryContainer);
+  let userLibrary = [];
+  let userLibraryTypes = [];
+  // Insert user library as draggable modules inside the dashed module-container
+  const userLibraryContainer = document.createElement('div');
+  userLibraryContainer.id = 'user-library-container';
+  userLibraryContainer.style.display = 'flex';
+  userLibraryContainer.style.flexWrap = 'wrap';
+  userLibraryContainer.style.gap = '10px';
+  userLibraryContainer.style.margin = '8px 0'; // small gap at top and bottom
+  // moduleContainer is already defined above
+  moduleContainer.appendChild(userLibraryContainer);
 
-function renderUserLibrary() {
-  userLibraryContainer.innerHTML = '';
-  userLibrary.forEach((gene, i) => {
-    const div = document.createElement('div');
-    div.className = 'gene-module';
-    div.style.cursor = 'grab';
-    div.style.display = 'flex';
-    div.style.alignItems = 'center';
-    div.style.minWidth = '90px';
-    div.style.justifyContent = 'center';
-    div.style.fontSize = '18px';
-    div.style.fontWeight = '500';
-    div.style.background = '#fff';
-    div.style.color = '#8C1515';
-    div.style.borderRadius = '12px';
-    div.style.padding = '10px 18px';
-    div.style.margin = '0';
-    div.style.boxShadow = '0 2px 8px rgba(0,0,0,0.04)';
-    div.draggable = true;
-    // Add icon/arrow for type
-    const { icon, color, tooltip } = getPerturbationIconAndTooltip(gene, userLibraryTypes[i]);
-    if (icon) {
-      const iconSpan = document.createElement('span');
-      iconSpan.textContent = icon;
-      iconSpan.style.marginRight = '6px';
-      iconSpan.style.fontSize = '18px';
-      iconSpan.style.verticalAlign = 'middle';
-      iconSpan.style.color = color;
-      iconSpan.title = tooltip;
-      div.appendChild(iconSpan);
-    }
-    const geneSpan = document.createElement('span');
-    geneSpan.textContent = stripGeneDisplay(gene);
-    div.appendChild(geneSpan);
-    // Drag logic
-    div.addEventListener('dragstart', e => {
-      e.dataTransfer.setData('user-library-index', i);
+  function renderUserLibrary() {
+    userLibraryContainer.innerHTML = '';
+    userLibrary.forEach((gene, i) => {
+      const div = document.createElement('div');
+      div.className = 'gene-module';
+      div.style.cursor = 'grab';
+      div.style.display = 'flex';
+      div.style.alignItems = 'center';
+      div.style.minWidth = '90px';
+      div.style.justifyContent = 'center';
+      div.style.fontSize = '18px';
+      div.style.fontWeight = '500';
+      div.style.background = '#fff';
+      div.style.color = '#8C1515';
+      div.style.borderRadius = '12px';
+      div.style.padding = '10px 18px';
+      div.style.margin = '0';
+      div.style.boxShadow = '0 2px 8px rgba(0,0,0,0.04)';
+      div.draggable = true;
+      // Add icon/arrow for type
+      const { icon, color, tooltip } = getPerturbationIconAndTooltip(gene, userLibraryTypes[i]);
+      if (icon) {
+        const iconSpan = document.createElement('span');
+        iconSpan.textContent = icon;
+        iconSpan.style.marginRight = '6px';
+        iconSpan.style.fontSize = '18px';
+        iconSpan.style.verticalAlign = 'middle';
+        iconSpan.style.color = color;
+        iconSpan.title = tooltip;
+        div.appendChild(iconSpan);
+      }
+      const geneSpan = document.createElement('span');
+      geneSpan.textContent = stripGeneDisplay(gene);
+      div.appendChild(geneSpan);
+      // Drag logic
+      div.addEventListener('dragstart', e => {
+        e.dataTransfer.setData('user-library-index', i);
+      });
+      userLibraryContainer.appendChild(div);
     });
-    userLibraryContainer.appendChild(div);
-  });
-}
-
-// Allow dropping from user library into construct builder
-constructBuilder.addEventListener('dragover', e => e.preventDefault());
-constructBuilder.addEventListener('drop', e => {
-  e.preventDefault();
-  const libIdx = e.dataTransfer.getData('user-library-index');
-  if (libIdx !== '' && libIdx !== null && !isNaN(libIdx)) {
-    addGene(userLibrary[libIdx], userLibraryTypes[libIdx]);
   }
-});
 
-  // Init
-  // 1. Ensure the cassette area is empty by default and only shows added modules
-  cassetteGenes = [];
-  cassetteTypes = [];
-  connectors = [];
-  // Only call renderConstruct and updateCassetteString after a module is added or imported, not on page load
-  // Remove any call to renderConstruct() and updateCassetteString() that would pre-populate the cassette area
+  // Allow dropping from user library into construct builder
+  constructBuilder.addEventListener('dragover', e => e.preventDefault());
+  constructBuilder.addEventListener('drop', e => {
+    e.preventDefault();
+    const libIdx = e.dataTransfer.getData('user-library-index');
+    if (libIdx !== '' && libIdx !== null && !isNaN(libIdx)) {
+      addGene(userLibrary[libIdx], userLibraryTypes[libIdx]);
+    }
+    // Also allow dropping built-in modules by gene/type
+    const g = e.dataTransfer.getData('gene');
+    const t = e.dataTransfer.getData('type');
+    if (g) addGene(g, t || 'overexpression');
+  });
 
-  // 2. The library (module list) should not show any modules in the cassette area by default
-  // (Already handled by above)
-
-  // 3. Only add modules to the cassette area when the user clicks 'Add' or imports
-  // (Handled by addGene and import logic)
-
-  // 4. Remove any extra bar or element that appears under the search bar and is not part of the intended UI
-  // Remove any accidental extra element creation after the search bar
+  // --- Initialize the modules and user library ---
+  // Remove any extra bar or element that appears under the search bar and is not part of the intended UI
   const librarySection = document.getElementById('all-gene-modules').parentNode;
   const extraBar = librarySection.querySelector('hr, .extra-bar');
   if (extraBar) extraBar.remove();
 
-
-  // 4. Add an Import button for uploading a JSON file of perturbations
+  // Add an Import button for uploading a JSON file of perturbations
   const importCassetteBtn = document.createElement('button');
   importCassetteBtn.textContent = 'Import Library';
   importCassetteBtn.className = 'button';
@@ -1437,6 +1480,10 @@ constructBuilder.addEventListener('drop', e => {
     };
     reader.readAsText(file);
   });
+
+  // --- Render built-in modules and user library on load ---
+  renderInitialGeneModules();
+  renderUserLibrary();
 });
 </script>
 </body>
