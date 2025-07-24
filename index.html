@@ -173,12 +173,14 @@ input::placeholder,textarea::placeholder {color:#fff;opacity:.7;}
   <div class="section">
     <h2>1. Design Mode</h2>
     <div class="radio-group">
-      <input type="radio" id="natural-language-mode" name="design-mode" value="natural">
-      <label for="natural-language-mode">Natural Language</label>
-      <input type="radio" id="manual-mode" name="design-mode" value="manual" checked>
-      <label for="manual-mode">Manual</label>
-      <input type="radio" id="multi-cassette-mode" name="design-mode" value="multi">
+      <input type="radio" id="single-cassette-mode" name="cassette-mode" value="single" checked>
+      <label for="single-cassette-mode">Single-Cassette</label>
+      <input type="radio" id="multi-cassette-mode" name="cassette-mode" value="multi">
       <label for="multi-cassette-mode">Multi-Cassette</label>
+    </div>
+    <div id="single-mode-options" class="inline-mode-toggle">
+      <label><input type="radio" name="single-submode" value="natural" checked> Natural Language</label>
+      <label><input type="radio" name="single-submode" value="manual"> Manual</label>
     </div>
     <div id="natural-language-container" class="hidden">
       <input type="text" id="natural-language-input" placeholder="e.g., 'Enhance persistence and cytotoxicity' (Enter)">
@@ -341,7 +343,9 @@ input::placeholder,textarea::placeholder {color:#fff;opacity:.7;}
 <script>
 document.addEventListener('DOMContentLoaded',() => {
   // Elements
-  const modeToggles=document.querySelectorAll('input[name="design-mode"]');
+  const cassetteModeToggles = document.querySelectorAll('input[name="cassette-mode"]');
+  const singleModeOptions = document.getElementById('single-mode-options');
+  const singleSubmodeToggles = document.querySelectorAll('input[name="single-submode"]');
   const naturalLanguageContainer=document.getElementById('natural-language-container');
   const naturalLanguageInput=document.getElementById('natural-language-input');
   const reasoningDisplay=document.getElementById('reasoning-display');
@@ -996,15 +1000,30 @@ document.addEventListener('DOMContentLoaded',() => {
     el.addEventListener('input',()=>{if(isSequenceVisible) buildSequence();});
   });
 
-  // Global mode switching
-  modeToggles.forEach(r=>{
-    r.addEventListener('change',()=>{
-      const mode=document.querySelector('input[name="design-mode"]:checked').value;
-      naturalLanguageContainer.classList.toggle('hidden',mode!=='natural');
-      manualToolContainer.classList.toggle('hidden',mode!=='manual');
-      multiCassetteToolContainer.classList.toggle('hidden',mode!=='multi');
+  // Cassette mode switching (new structure)
+  function updateSingleSubmode() {
+    const sub = document.querySelector('input[name="single-submode"]:checked').value;
+    naturalLanguageContainer.classList.toggle('hidden', sub !== 'natural');
+    manualToolContainer.classList.toggle('hidden', sub !== 'manual');
+  }
+  cassetteModeToggles.forEach(r => {
+    r.addEventListener('change', () => {
+      const mode = document.querySelector('input[name="cassette-mode"]:checked').value;
+      if (mode === 'single') {
+        singleModeOptions.classList.remove('hidden');
+        multiCassetteToolContainer.classList.add('hidden');
+        updateSingleSubmode();
+      } else {
+        singleModeOptions.classList.add('hidden');
+        naturalLanguageContainer.classList.add('hidden');
+        manualToolContainer.classList.add('hidden');
+        multiCassetteToolContainer.classList.remove('hidden');
+      }
     });
   });
+  singleSubmodeToggles.forEach(r => r.addEventListener('change', updateSingleSubmode));
+  // Initialize visibility
+  document.querySelector('input[name="cassette-mode"]:checked').dispatchEvent(new Event('change'));
 
   // Multi-cassette internal mode
   mcModeToggles.forEach(r=>{
