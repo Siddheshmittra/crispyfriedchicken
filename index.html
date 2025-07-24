@@ -1276,14 +1276,13 @@ document.addEventListener('mousedown', function(e) {
   // Add a new area below the search bar for the user's custom library
 let userLibrary = [];
 let userLibraryTypes = [];
+// Insert user library as draggable modules inside the dashed module-container
 const userLibraryContainer = document.createElement('div');
 userLibraryContainer.id = 'user-library-container';
 userLibraryContainer.style.display = 'flex';
 userLibraryContainer.style.flexWrap = 'wrap';
 userLibraryContainer.style.gap = '10px';
-// Remove any margin or positioning that places it below the search bar.
-// Instead, it will be appended to the all-gene-modules container as a module group.
-userLibraryContainer.style.margin = ''; // Remove margin
+userLibraryContainer.style.margin = '8px 0'; // small gap at top and bottom
 const moduleContainer = document.getElementById('all-gene-modules');
 moduleContainer.appendChild(userLibraryContainer);
 
