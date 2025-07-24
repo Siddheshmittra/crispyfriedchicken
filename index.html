@@ -1000,12 +1000,23 @@ document.addEventListener('DOMContentLoaded',() => {
     el.addEventListener('input',()=>{if(isSequenceVisible) buildSequence();});
   });
 
-  // Cassette mode switching (new structure)
+  // Ensure user library is always visible in manual mode and Add button always works
+  function showUserLibraryIfNeeded() {
+    if (!manualToolContainer.classList.contains('hidden')) {
+      userLibraryContainer.style.display = 'flex';
+    } else {
+      userLibraryContainer.style.display = 'none';
+    }
+  }
+
+  // Patch mode/submode switching to show/hide user library
   function updateSingleSubmode() {
     const sub = document.querySelector('input[name="single-submode"]:checked').value;
     naturalLanguageContainer.classList.toggle('hidden', sub !== 'natural');
     manualToolContainer.classList.toggle('hidden', sub !== 'manual');
+    showUserLibraryIfNeeded();
   }
+
   cassetteModeToggles.forEach(r => {
     r.addEventListener('change', () => {
       const mode = document.querySelector('input[name="cassette-mode"]:checked').value;
@@ -1018,12 +1029,30 @@ document.addEventListener('DOMContentLoaded',() => {
         naturalLanguageContainer.classList.add('hidden');
         manualToolContainer.classList.add('hidden');
         multiCassetteToolContainer.classList.remove('hidden');
+        userLibraryContainer.style.display = 'none';
       }
     });
   });
   singleSubmodeToggles.forEach(r => r.addEventListener('change', updateSingleSubmode));
   // Initialize visibility
-  document.querySelector('input[name="cassette-mode"]:checked').dispatchEvent(new Event('change'));
+  showUserLibraryIfNeeded();
+
+  document.getElementById('add-gene-btn').addEventListener('click', function() {
+    if (!selectedGeneSymbol) return;
+    const type = selectedPerturbationType;
+    let displayGene = selectedGeneSymbol;
+    let moduleType = 'overexpression';
+    if (type === 'KO') { displayGene = `KO:${selectedGeneSymbol}`; moduleType = 'gRNA'; }
+    else if (type === 'KD') { displayGene = `KD:${selectedGeneSymbol}`; moduleType = 'gRNA'; }
+    else if (type === 'KU') { displayGene = `KU:${selectedGeneSymbol}`; moduleType = 'overexpression'; }
+    userLibrary.push(displayGene);
+    userLibraryTypes.push(moduleType);
+    renderUserLibrary();
+    userLibraryContainer.style.display = 'flex';
+    selectedGeneSymbol = null;
+    geneSearchInput.value = '';
+    this.disabled = true;
+  });
 
   // Multi-cassette internal mode
   mcModeToggles.forEach(r=>{
