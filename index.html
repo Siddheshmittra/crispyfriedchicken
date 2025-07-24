@@ -1334,7 +1334,7 @@ document.addEventListener('mousedown', function(e) {
 
   // --- Ensure correct initial visibility for natural language panel ---
   function updateSingleSubmode() {
-    const sub = document.querySelector('input[name="single-submode"]:checked').value;
+    const sub = document.querySelector('input[name="single-mode"]:checked').value;
     const naturalLanguageContainer = document.getElementById('natural-language-container');
     const manualToolContainer = document.getElementById('manual-tool-container');
     naturalLanguageContainer.classList.toggle('hidden', sub !== 'natural');
@@ -1345,9 +1345,15 @@ document.addEventListener('mousedown', function(e) {
   updateSingleSubmode();
 
   // Also ensure the event listeners for submode toggles are set up
-  document.querySelectorAll('input[name="single-submode"]').forEach(r =>
+  document.querySelectorAll('input[name="single-mode"]').forEach(r =>
     r.addEventListener('change', updateSingleSubmode)
   );
+
+  // After DOMContentLoaded, ensure #single-mode-options is visible
+  const singleModeOptions = document.getElementById('single-mode-options');
+  singleModeOptions.classList.remove('hidden');
+  // Also call updateSingleSubmode to ensure the correct panel is visible
+  if (typeof updateSingleSubmode === 'function') updateSingleSubmode();
 
   // Init
   renderConstruct();updateCassetteString();
