@@ -1074,7 +1074,8 @@ document.addEventListener('DOMContentLoaded',() => {
   // Initialize visibility
   showUserLibraryIfNeeded();
 
-  document.getElementById('add-gene-btn').addEventListener('click', function() {
+  // Ensure user library is always visible and updated after Add
+  addGeneBtn.addEventListener('click', function() {
     if (!selectedGeneSymbol) return;
     const type = selectedPerturbationType;
     let displayGene = selectedGeneSymbol;
