@@ -1291,32 +1291,51 @@ function renderUserLibrary() {
   userLibrary.forEach((gene, i) => {
     const div = document.createElement('div');
     div.className = 'gene-module';
-    div.textContent = gene;
-    div.style.cursor = 'pointer';
-    div.addEventListener('click', () => {
-      addGene(gene, userLibraryTypes[i]);
+    div.style.cursor = 'grab';
+    div.style.display = 'flex';
+    div.style.alignItems = 'center';
+    div.style.minWidth = '90px';
+    div.style.justifyContent = 'center';
+    div.style.fontSize = '18px';
+    div.style.fontWeight = '500';
+    div.style.background = '#fff';
+    div.style.color = '#8C1515';
+    div.style.borderRadius = '12px';
+    div.style.padding = '10px 18px';
+    div.style.margin = '0';
+    div.style.boxShadow = '0 2px 8px rgba(0,0,0,0.04)';
+    div.draggable = true;
+    // Add icon/arrow for type
+    const { icon, color, tooltip } = getPerturbationIconAndTooltip(gene, userLibraryTypes[i]);
+    if (icon) {
+      const iconSpan = document.createElement('span');
+      iconSpan.textContent = icon;
+      iconSpan.style.marginRight = '6px';
+      iconSpan.style.fontSize = '18px';
+      iconSpan.style.verticalAlign = 'middle';
+      iconSpan.style.color = color;
+      iconSpan.title = tooltip;
+      div.appendChild(iconSpan);
+    }
+    const geneSpan = document.createElement('span');
+    geneSpan.textContent = stripGeneDisplay(gene);
+    div.appendChild(geneSpan);
+    // Drag logic
+    div.addEventListener('dragstart', e => {
+      e.dataTransfer.setData('user-library-index', i);
     });
     userLibraryContainer.appendChild(div);
   });
 }
 
-
-// Inserted new Add button handler after perturbationTypeDropdown event
-const addGeneBtn = document.getElementById('add-gene-btn');
-addGeneBtn.addEventListener('click', function() {
-  if (!selectedGeneSymbol) return;
-  const type = selectedPerturbationType;
-  let displayGene = selectedGeneSymbol;
-  let moduleType = 'overexpression';
-  if (type === 'KO') { displayGene = `KO:${selectedGeneSymbol}`; moduleType = 'gRNA'; }
-  else if (type === 'KD') { displayGene = `KD:${selectedGeneSymbol}`; moduleType = 'gRNA'; }
-  else if (type === 'KU') { displayGene = `KU:${selectedGeneSymbol}`; moduleType = 'overexpression'; }
-  userLibrary.push(displayGene);
-  userLibraryTypes.push(moduleType);
-  renderUserLibrary();
-  selectedGeneSymbol = null;
-  geneSearchInput.value = '';
-  this.disabled = true;
+// Allow dropping from user library into construct builder
+constructBuilder.addEventListener('dragover', e => e.preventDefault());
+constructBuilder.addEventListener('drop', e => {
+  e.preventDefault();
+  const libIdx = e.dataTransfer.getData('user-library-index');
+  if (libIdx !== '' && libIdx !== null && !isNaN(libIdx)) {
+    addGene(userLibrary[libIdx], userLibraryTypes[libIdx]);
+  }
 });
 
   // Init
