@@ -1281,9 +1281,11 @@ userLibraryContainer.id = 'user-library-container';
 userLibraryContainer.style.display = 'flex';
 userLibraryContainer.style.flexWrap = 'wrap';
 userLibraryContainer.style.gap = '10px';
-userLibraryContainer.style.margin = '16px 0';
-const searchUI = document.getElementById('gene-search-ui');
-searchUI.parentNode.insertBefore(userLibraryContainer, searchUI.nextSibling);
+// Remove any margin or positioning that places it below the search bar.
+// Instead, it will be appended to the all-gene-modules container as a module group.
+userLibraryContainer.style.margin = ''; // Remove margin
+const moduleContainer = document.getElementById('all-gene-modules');
+moduleContainer.appendChild(userLibraryContainer);
 
 function renderUserLibrary() {
   userLibraryContainer.innerHTML = '';
@@ -1338,13 +1340,6 @@ addGeneBtn.addEventListener('click', function() {
   const extraBar = librarySection.querySelector('hr, .extra-bar');
   if (extraBar) extraBar.remove();
 
-  // 2.5. Filter modules as you type
-  // librarySearch.addEventListener('input', function() { // This line is removed as per the new_code
-  //   const q = librarySearch.value.toLowerCase(); // This line is removed as per the new_code
-  //   Array.from(document.querySelectorAll('#all-gene-modules .gene-module')).forEach(m => { // This line is removed as per the new_code
-  //     m.style.display = m.dataset.gene.toLowerCase().includes(q) ? '' : 'none'; // This line is removed as per the new_code
-  //   }); // This line is removed as per the new_code
-  // }); // This line is removed as per the new_code
 
   // 4. Add an Import button for uploading a JSON file of perturbations
   const importCassetteBtn = document.createElement('button');
